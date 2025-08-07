@@ -3,7 +3,8 @@ import { Params } from 'nestjs-pino';
 
 export const createPinoConfig = (configService: ConfigService): Params => {
   const isDevelopment = configService.get('NODE_ENV') !== 'production';
-  const logLevel = configService.get('LOG_LEVEL') || (isDevelopment ? 'debug' : 'info');
+  const logLevel =
+    configService.get('LOG_LEVEL') || (isDevelopment ? 'debug' : 'info');
 
   return {
     pinoHttp: {
@@ -21,23 +22,24 @@ export const createPinoConfig = (configService: ConfigService): Params => {
             },
           }
         : undefined,
-      
+
       // Custom formatters for better log structure
       formatters: {
         level: (label: string) => ({ level: label }),
         log: (object: any) => {
           // Add correlation ID if available
-          const correlationId = object.correlationId || object.req?.headers?.['x-correlation-id'];
+          const correlationId =
+            object.correlationId || object.req?.headers?.['x-correlation-id'];
           if (correlationId) {
             object.correlationId = correlationId;
           }
           return object;
         },
       },
-      
+
       // ISO timestamp for consistency
       timestamp: () => `,"timestamp":"${new Date().toISOString()}"`,
-      
+
       // Request/Response serializers for HTTP logging
       serializers: {
         req: (req: any) => ({
@@ -64,15 +66,15 @@ export const createPinoConfig = (configService: ConfigService): Params => {
           code: err.code,
         }),
       },
-      
+
       // Async logging for better performance (non-blocking)
       // sync: false, // This property is not supported in current version
-      
+
       // Custom log levels
       customLevels: {
         audit: 35, // Between info (30) and warn (40)
       },
-      
+
       // Redact sensitive information
       redact: {
         paths: [
@@ -84,7 +86,7 @@ export const createPinoConfig = (configService: ConfigService): Params => {
         ],
         censor: '[REDACTED]',
       },
-      
+
       // Auto-logging for HTTP requests
       autoLogging: {
         ignore: (req: any) => {

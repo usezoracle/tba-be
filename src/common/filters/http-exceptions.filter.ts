@@ -71,9 +71,11 @@ export class HttpExceptionsFilter implements ExceptionFilter {
         typeof rawRes === 'object' &&
         Array.isArray((rawRes as StructuredExceptionResponse).message)
       ) {
-        const messages = (rawRes as StructuredExceptionResponse).message as string[];
+        const messages = (rawRes as StructuredExceptionResponse)
+          .message as string[];
         // Pick the first validation error:
-        const firstMessage = messages.length > 0 ? messages[0] : 'Validation failed';
+        const firstMessage =
+          messages.length > 0 ? messages[0] : 'Validation failed';
 
         return {
           status,
@@ -95,10 +97,9 @@ export class HttpExceptionsFilter implements ExceptionFilter {
       // Otherwise, getResponse() is an object. We read its "message" and "errorType" if present.
       const structured = rawRes as StructuredExceptionResponse;
       let msg: string;
-      let code: string;
 
-      // If the payload’s "message" is an array (but we didn’t hit BadRequestException above),
-      // we still join it into a string. Otherwise, convert to string if it’s something else.
+      // If the payload's "message" is an array (but we didn't hit BadRequestException above),
+      // we still join it into a string. Otherwise, convert to string if it's something else.
       if (Array.isArray(structured.message)) {
         msg = (structured.message as string[]).join(', ');
       } else if (typeof structured.message === 'string') {
@@ -109,7 +110,10 @@ export class HttpExceptionsFilter implements ExceptionFilter {
       }
 
       // If the payload included an "errorType" field, use it; otherwise, use exception.name
-      code = typeof structured.errorType === 'string' ? structured.errorType : exception.name;
+      const code =
+        typeof structured.errorType === 'string'
+          ? structured.errorType
+          : exception.name;
 
       return {
         status,

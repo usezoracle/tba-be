@@ -1,0 +1,22 @@
+// User-related models
+model User {
+  id             String             @id @default(uuid())
+  walletAddress  String             @unique
+  watchList      TokenWatchlist[]   @relation("UserWatchlist")
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  @@map("users")
+}
+
+model TokenWatchlist {
+  id            String   @id @default(cuid()) // required unique ID
+  tokenAddress  String
+  user          User     @relation("UserWatchlist", fields: [userId], references: [id])
+  userId        String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("token_watchlist")
+  @@unique([userId, tokenAddress]) // prevent duplicates per user
+} 

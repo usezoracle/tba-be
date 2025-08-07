@@ -1,6 +1,6 @@
-
 import { SchedulerModule } from './scheduler';
 import { RedisModule } from './redis';
+import { PrismaModule } from './database';
 
 import { EventBusModule } from './events';
 import { AppHealthModule } from './app-health';
@@ -10,27 +10,26 @@ import { LoggingModule } from './logging';
 export * from './app-health';
 export * from './events';
 export * from './logging';
+export * from './database';
 
 export * from './redis';
 export * from './scheduler';
-
 
 // Export modules array for easy importing
 export { AppHealthModule } from './app-health';
 export { EventBusModule } from './events';
 export { LoggingModule } from './logging';
+export { PrismaModule } from './database';
 
 export { RedisModule } from './redis';
 export { SchedulerModule } from './scheduler';
-
 
 // Array of all infrastructure modules for convenience
 export const INFRASTRUCTURE_MODULES = [
   LoggingModule, // Must be first for proper initialization
   AppHealthModule,
   EventBusModule,
-
+  PrismaModule, // Database module
   RedisModule,
   SchedulerModule,
-
 ];

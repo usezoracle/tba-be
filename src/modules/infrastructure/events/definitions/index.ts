@@ -1,5 +1,5 @@
-import { TokenEvents } from './tokens.events';
+import { UserCreatedEvent } from './user-created.event';
 
-export const EventDefinitions = [...TokenEvents];
+export { UserCreatedEvent } from './user-created.event';
 
-export * from './tokens.events';
+export const EventDefinitions = [UserCreatedEvent];

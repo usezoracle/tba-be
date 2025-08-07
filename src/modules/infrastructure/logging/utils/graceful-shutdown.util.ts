@@ -22,7 +22,7 @@ export class GracefulShutdownUtil {
       try {
         // Close the application
         await app.close();
-        
+
         if (this.logger) {
           this.logger.log('Application closed successfully');
         }
@@ -42,7 +42,7 @@ export class GracefulShutdownUtil {
     // Handle different termination signals
     process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
     process.on('SIGINT', () => gracefulShutdown('SIGINT'));
-    
+
     // Handle uncaught exceptions and unhandled rejections
     process.on('uncaughtException', (error) => {
       if (this.logger) {

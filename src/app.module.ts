@@ -6,14 +6,14 @@ import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
 
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { TokensModule } from './modules/tokens/tokens.module';
-// Health is now part of InfrastructureModule
-import { BlockchainModule } from './modules/blockchain/blockchain.module';
-// Redis is now part of InfrastructureModule
+
+// Import infrastructure modules
 import { INFRASTRUCTURE_MODULES } from './modules/infrastructure';
 import { configValidationSchema } from './config/config.validation';
+import { config } from './config/env.config';
 
-// Note: Old infrastructure modules removed - now using new infrastructure structure
+// Import feature modules
+import { NewTokensModule } from './modules/NewTokens';
 
 // Common
 import { HttpExceptionsFilter, TransformResponseInterceptor } from './common';
@@ -25,9 +25,8 @@ import { HttpExceptionsFilter, TransformResponseInterceptor } from './common';
       isGlobal: true,
       validationSchema: configValidationSchema,
       envFilePath: ['.env.local', '.env'],
+      load: [() => config],
     }),
-
-    // Note: Old infrastructure modules removed
 
     // Scheduling for cron jobs
     ScheduleModule.forRoot(),
@@ -44,8 +43,7 @@ import { HttpExceptionsFilter, TransformResponseInterceptor } from './common';
     ...INFRASTRUCTURE_MODULES,
 
     // Feature modules
-    TokensModule,
-    BlockchainModule,
+    NewTokensModule,
   ],
   controllers: [AppController],
   providers: [

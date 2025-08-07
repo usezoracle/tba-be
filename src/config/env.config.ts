@@ -1,14 +1,8 @@
 export const config = {
   app: {
     env: process.env.NODE_ENV || 'development',
-    name: process.env.APP_NAME || 'Zora TBA Coins API',
+    name: process.env.APP_NAME || 'NestJS API',
     port: parseInt(process.env.PORT || '3000', 10),
-  },
-  blockchain: {
-    rpcUrl: process.env.RPC_URL,
-    startBlockNumber: BigInt(process.env.START_BLOCK_NUMBER || '32964917'),
-    blockRange: parseInt(process.env.BLOCK_RANGE || '400', 10),
-    scanIntervalSeconds: parseInt(process.env.SCAN_INTERVAL_SECONDS || '2', 10),
   },
   redis: {
     upstash: {
@@ -19,6 +13,10 @@ export const config = {
   },
   database: {
     url: process.env.DATABASE_URL,
+  },
+  codex: {
+    apiKey: process.env.CODEX_API_KEY,
+    baseUrl: process.env.CODEX_BASE_URL ,
   },
   cors: {
     origins: process.env.CORS_ORIGINS || '*',

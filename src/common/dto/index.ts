@@ -1,1 +1,1 @@
-export * from './response.dto';
+// No DTOs defined yet

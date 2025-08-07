@@ -13,7 +13,9 @@ export class EventBusService {
   }
 
   publish<T extends Event>(event: T): void {
-    this.logger.info(`Publishing event: ${event.eventName} for ${event.aggregateId}`);
+    this.logger.info(
+      `Publishing event: ${event.eventName} for ${event.aggregateId}`,
+    );
 
     const enrichedEvent = {
       ...event,
@@ -24,7 +26,7 @@ export class EventBusService {
   }
 
   publishAll(events: Event[]): void {
-    events.forEach(event => this.publish(event));
+    events.forEach((event) => this.publish(event));
   }
 
   subscribe<T extends Event>(

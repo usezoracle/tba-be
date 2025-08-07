@@ -1,5 +1,5 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
+// This is the main schema file for the multi-file Prisma schema
+// All datasource and generator configurations should be here
 
 generator client {
   provider = "prisma-client-js"
@@ -8,43 +8,4 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
-}
-
-// Token model for storing scanned token data
-model Token {
-  id            String   @id @default(cuid())
-  poolId        String   @unique
-  name          String
-  symbol        String
-  decimals      Int
-  address       String
-  tick          Int
-  sqrtPriceX96  String
-  price         String
-  coinType      String   // ZORA_CREATOR_COIN, ZORA_V4_COIN
-  appType       String   // ZORA, TBA
-  blockNumber   String
-  timestamp     DateTime
-  
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  
-  @@map("tokens")
-}
-
-// Scan history model for tracking scan operations
-model ScanHistory {
-  id            String   @id @default(cuid())
-  startBlock    String
-  endBlock      String
-  tokensFound   Int
-  zoraTokens    Int
-  tbaTokens     Int
-  duration      Int      // in milliseconds
-  status        String   // SUCCESS, FAILED, PARTIAL
-  errorMessage  String?
-  
-  createdAt     DateTime @default(now())
-  
-  @@map("scan_history")
 }

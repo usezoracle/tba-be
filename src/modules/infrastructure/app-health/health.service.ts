@@ -21,12 +21,11 @@ export class HealthService {
 
   async getDetailedHealth() {
     const basic = this.getHealth();
-    
+
     return {
       ...basic,
       dependencies: {
         redis: await this.checkRedis(),
-        blockchain: await this.checkBlockchain(),
       },
       system: {
         memory: process.memoryUsage(),
@@ -44,17 +43,6 @@ export class HealthService {
       const client = this.redisService.getClient();
       // Simple ping operation
       await client.ping();
-      const latency = Date.now() - start;
-      return { status: 'healthy', latency };
-    } catch (error) {
-      return { status: 'unhealthy' };
-    }
-  }
-
-  private async checkBlockchain(): Promise<{ status: string; latency?: number }> {
-    try {
-      const start = Date.now();
-      // Simple blockchain call would go here
       const latency = Date.now() - start;
       return { status: 'healthy', latency };
     } catch (error) {

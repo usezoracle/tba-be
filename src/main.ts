@@ -8,10 +8,10 @@ import { GracefulShutdownUtil } from './modules/infrastructure/logging/utils/gra
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
-  
+
   // Use Pino logger
   app.useLogger(app.get(Logger));
-  
+
   const configService = app.get(ConfigService);
   const logger = app.get(Logger);
 
@@ -29,8 +29,8 @@ async function bootstrap() {
       },
       // Return detailed validation errors
       exceptionFactory: (errors) => {
-        const messages = errors.map(error => 
-          Object.values(error.constraints || {}).join(', ')
+        const messages = errors.map((error) =>
+          Object.values(error.constraints || {}).join(', '),
         );
         return new Error(`Validation failed: ${messages.join('; ')}`);
       },
@@ -49,7 +49,9 @@ async function bootstrap() {
   if (configService.get('NODE_ENV') !== 'production') {
     const config = new DocumentBuilder()
       .setTitle('Zora TBA Coins API')
-      .setDescription('API for scanning and retrieving Zora and TBA token data with standardized responses')
+      .setDescription(
+        'API for scanning and retrieving Zora and TBA token data with standardized responses',
+      )
       .setVersion('1.0')
       .addTag('tokens', 'Token-related endpoints')
       .addTag('health', 'Health check endpoints')
@@ -62,11 +64,11 @@ async function bootstrap() {
   }
 
   const port = configService.get('PORT') || 3000;
-  
+
   // Setup graceful shutdown
   GracefulShutdownUtil.setLogger(logger);
   GracefulShutdownUtil.setupGracefulShutdown(app);
-  
+
   await app.listen(port);
 
   logger.log(`🚀 Application is running on: http://localhost:${port}`);

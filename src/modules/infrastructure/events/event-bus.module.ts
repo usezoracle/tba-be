@@ -4,6 +4,8 @@ import { EventDefinitions } from './definitions';
 import { Module, Global } from '@nestjs/common';
 import { DefinitionHandlers } from './handlers';
 import { EventBusService } from './bus';
+import { RedisModule } from '../redis';
+// import { TokensModule } from '../../Tokens/tokens.module';
 
 @Global()
 @Module({
@@ -13,6 +15,8 @@ import { EventBusService } from './bus';
       delimiter: '.',
       maxListeners: 20,
     }),
+    RedisModule,
+    // TokensModule,
   ],
   providers: [EventBusService, ...EventDefinitions, ...DefinitionHandlers],
   exports: [EventBusService],

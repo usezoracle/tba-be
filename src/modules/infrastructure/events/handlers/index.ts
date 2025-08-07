@@ -1,5 +1,4 @@
-import { TokenEventsHandler } from './token-events.handler';
+import { UserEventsHandler } from './user-events.handler';
+import { NewTokenEventsHandler } from './new-token-events.handler';
 
-export const DefinitionHandlers = [TokenEventsHandler];
-
-export * from './token-events.handler';
+export const DefinitionHandlers = [UserEventsHandler, NewTokenEventsHandler];

@@ -9,12 +9,13 @@ export class AppController {
   constructor(private readonly appService: AppService) {}
 
   @Get()
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Get application information',
-    description: 'Returns basic information about the application including name, version, and environment'
+    description:
+      'Returns basic information about the application including name, version, and environment',
   })
-  @ApiResponse({ 
-    status: 200, 
+  @ApiResponse({
+    status: 200,
     description: 'Application information retrieved successfully',
     schema: {
       example: {
@@ -24,11 +25,11 @@ export class AppController {
           version: '1.0.0',
           description: 'Production-grade API for Zora and TBA token data',
           environment: 'development',
-          timestamp: '2025-07-30T01:23:45.678Z'
+          timestamp: '2025-07-30T01:23:45.678Z',
         },
-        timestamp: '2025-07-30T01:23:45.678Z'
-      }
-    }
+        timestamp: '2025-07-30T01:23:45.678Z',
+      },
+    },
   })
   getAppInfo() {
     return this.appService.getAppInfo();
