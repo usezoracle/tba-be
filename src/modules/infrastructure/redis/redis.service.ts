@@ -1,7 +1,7 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { PinoLogger } from 'nestjs-pino';
 import { ConfigType } from '@nestjs/config';
-import { Redis } from '@upstash/redis';
+import Redis from 'ioredis';
 import redisConfig from '../../../config/redis.config';
 
 @Injectable()
@@ -14,11 +14,24 @@ export class RedisService {
     private readonly logger: PinoLogger,
   ) {
     this.logger.setContext(RedisService.name);
-    this.redis = new Redis({
-      url: this.config.url,
-      token: this.config.token,
-    });
-    this.logger.info('Redis client initialized');
+
+    // Use ioredis for all Redis operations
+    const redisUrl = process.env.UPSTASH_REDIS_URL;
+    this.redis = new Redis(redisUrl);
+    this.logger.info('Redis client initialized with ioredis');
+  }
+
+  /**
+   * Build ioredis URL from REST URL and token
+   */
+  private buildIoredisUrl(): string {
+    // Extract host from REST URL: https://host.upstash.io
+    const restUrl = this.config.url;
+    const host = restUrl.replace('https://', '').replace('.upstash.io', '');
+    const token = this.config.token;
+
+    // Build ioredis URL: rediss://default:token@host.upstash.io:6379
+    return `rediss://default:${token}@${host}.upstash.io:6379`;
   }
 
   /**
@@ -30,7 +43,7 @@ export class RedisService {
   async set<T>(key: string, data: T, ttl?: number): Promise<void> {
     try {
       if (ttl) {
-        await this.redis.setex(key, ttl, JSON.stringify(data));
+        await this.redis.set(key, JSON.stringify(data), 'EX', ttl);
       } else {
         await this.redis.set(key, JSON.stringify(data));
       }
@@ -106,12 +119,11 @@ export class RedisService {
    */
   async mset(entries: [string, any][]): Promise<void> {
     try {
-      const formatted = entries.reduce((acc, [key, value]) => {
-        acc[key] = JSON.stringify(value);
-        return acc;
-      }, {});
-
-      await this.redis.mset(formatted);
+      const flat: string[] = [];
+      for (const [key, value] of entries) {
+        flat.push(key, JSON.stringify(value));
+      }
+      await this.redis.mset(...flat);
       this.logger.debug(
         `Successfully stored ${entries.length} key-value pairs`,
       );
@@ -139,8 +151,7 @@ export class RedisService {
   }
 
   /**
-   * Get the raw Redis client for advanced operations
-   * @returns Redis client instance
+   * Get Redis client for direct access
    */
   getClient(): Redis {
     return this.redis;
@@ -169,7 +180,7 @@ export class RedisService {
    */
   async hset(key: string, field: string, value: string): Promise<void> {
     try {
-      await this.redis.hset(key, { [field]: value });
+      await this.redis.hset(key, field, value);
       this.logger.debug(`Successfully set hash field: ${key}:${field}`);
     } catch (error) {
       this.logger.error(`Failed to set hash field: ${key}:${field}`, error);
@@ -209,6 +220,40 @@ export class RedisService {
   }
 
   /**
+   * Get range of elements from list
+   * @param key Redis key
+   * @param start Start index (0-based)
+   * @param stop Stop index (inclusive)
+   * @returns Array of elements
+   */
+  async lrange(key: string, start: number, stop: number): Promise<string[]> {
+    try {
+      const result = await this.redis.lrange(key, start, stop);
+      this.logger.debug(`Successfully retrieved range from list: ${key} (${start}:${stop})`);
+      return result as string[];
+    } catch (error) {
+      this.logger.error(`Failed to get range from list: ${key}`, error);
+      return [];
+    }
+  }
+
+  /**
+   * Get length of list
+   * @param key Redis key
+   * @returns Length of list
+   */
+  async llen(key: string): Promise<number> {
+    try {
+      const result = await this.redis.llen(key);
+      this.logger.debug(`Successfully got length of list: ${key}`);
+      return result;
+    } catch (error) {
+      this.logger.error(`Failed to get length of list: ${key}`, error);
+      return 0;
+    }
+  }
+
+  /**
    * Set expiration for a key
    * @param key Redis key
    * @param ttl Time to live in seconds
@@ -235,6 +280,44 @@ export class RedisService {
     } catch (error) {
       this.logger.error(`Failed to publish message to channel: ${channel}`, error);
       throw error;
+    }
+  }
+
+  /**
+   * Subscribe to a Redis channel
+   * @param channel Channel name
+   * @param callback Callback function to handle messages
+   */
+  subscribe(channel: string, callback: (message: string) => void): void {
+    try {
+      this.redis.subscribe(channel, (err) => {
+        if (err) {
+          this.logger.error(`Failed to subscribe to channel: ${channel}`, err);
+        } else {
+          this.logger.debug(`Successfully subscribed to channel: ${channel}`);
+        }
+      });
+
+      this.redis.on('message', (receivedChannel, message) => {
+        if (receivedChannel === channel) {
+          callback(message);
+        }
+      });
+    } catch (error) {
+      this.logger.error(`Failed to subscribe to channel: ${channel}`, error);
+    }
+  }
+
+  /**
+   * Unsubscribe from a Redis channel
+   * @param channel Channel name
+   */
+  unsubscribe(channel: string): void {
+    try {
+      this.redis.unsubscribe(channel);
+      this.logger.debug(`Successfully unsubscribed from channel: ${channel}`);
+    } catch (error) {
+      this.logger.error(`Failed to unsubscribe from channel: ${channel}`, error);
     }
   }
 }

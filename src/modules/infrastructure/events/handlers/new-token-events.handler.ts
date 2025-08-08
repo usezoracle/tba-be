@@ -45,20 +45,19 @@ export class NewTokenEventsHandler implements OnModuleInit {
 
       // Deduplicate using hash
       const eventKey = event.address; // Use address as the unique identifier
-      if (!(await this.redisService.hexists(hashKey, eventKey))) {
-        // Store in hash for deduplication with 24h TTL
-        await this.redisService.hset(hashKey, eventKey, JSON.stringify(tokenData));
-        await this.redisService.expire(hashKey, 86400); // 24h TTL for hash
-        
-        // Store in list for ordered access
-        await this.redisService.lpush(listKey, JSON.stringify(tokenData));
-        
-        // Keep only the last 500 tokens in the list
-        await this.redisService.ltrim(listKey, 0, 499);
-        await this.redisService.expire(listKey, 86400); // 24h TTL for list
-        
-        // Publish to SSE channel
-        await this.redisService.publish(channel, JSON.stringify(tokenData));
+      const exists = await this.redisService.hexists(hashKey, eventKey);
+      if (!exists) {
+        // Use Redis multi/exec to pipeline writes
+        const client = this.redisService.getClient();
+        const pipeline = client.multi();
+        pipeline.hset(hashKey, eventKey, JSON.stringify(tokenData));
+        pipeline.expire(hashKey, 86400);
+        pipeline.lpush(listKey, JSON.stringify(tokenData));
+        pipeline.ltrim(listKey, 0, 199);
+        pipeline.expire(listKey, 86400);
+        pipeline.publish(channel, JSON.stringify(tokenData));
+        await pipeline.exec();
+
         this.logger.info(`Token saved to Redis: ${eventKey}`);
       }
     } catch (error) {

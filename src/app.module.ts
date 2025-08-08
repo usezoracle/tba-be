@@ -14,6 +14,7 @@ import { config } from './config/env.config';
 
 // Import feature modules
 import { NewTokensModule } from './modules/NewTokens';
+import { CommentsModule } from './modules/Comments';
 
 // Common
 import { HttpExceptionsFilter, TransformResponseInterceptor } from './common';
@@ -44,6 +45,7 @@ import { HttpExceptionsFilter, TransformResponseInterceptor } from './common';
 
     // Feature modules
     NewTokensModule,
+    CommentsModule,
   ],
   controllers: [AppController],
   providers: [

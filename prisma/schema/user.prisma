@@ -3,6 +3,7 @@ model User {
   id             String             @id @default(uuid())
   walletAddress  String             @unique
   watchList      TokenWatchlist[]   @relation("UserWatchlist")
+  comments       Comment[]
   createdAt      DateTime           @default(now())
   updatedAt      DateTime           @updatedAt
 
@@ -20,3 +21,16 @@ model TokenWatchlist {
   @@map("token_watchlist")
   @@unique([userId, tokenAddress]) // prevent duplicates per user
 } 
+
+/// Comment model for token-specific user comments
+model Comment {
+  id           String   @id @default(uuid())
+  content      String
+  tokenAddress String
+  userId       String
+  user         User     @relation(fields: [userId], references: [id])
+  createdAt    DateTime @default(now())
+
+  @@index([tokenAddress, createdAt])
+  @@map("comments")
+}
