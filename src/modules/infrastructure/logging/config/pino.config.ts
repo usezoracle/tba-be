@@ -4,7 +4,7 @@ import { Params } from 'nestjs-pino';
 export const createPinoConfig = (configService: ConfigService): Params => {
   const isDevelopment = configService.get('NODE_ENV') !== 'production';
   const logLevel =
-    configService.get('LOG_LEVEL') || (isDevelopment ? 'warn' : 'info');
+    configService.get('LOG_LEVEL') || (isDevelopment ? 'debug' : 'info');
 
   return {
     pinoHttp: {
@@ -77,8 +77,17 @@ export const createPinoConfig = (configService: ConfigService): Params => {
         censor: '[REDACTED]',
       },
 
-      // Disable auto-logging to reduce noise
-      autoLogging: false,
+      // In dev, enable HTTP auto-logging (verbose); in prod, keep it off
+      autoLogging: isDevelopment
+        ? {
+            ignore: (req: any) => {
+              const url = req?.url || '';
+              return (
+                url === '/api/v1/health' || url === '/api/v1/health/detailed'
+              );
+            },
+          }
+        : false,
     },
   };
 };

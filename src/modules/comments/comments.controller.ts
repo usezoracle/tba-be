@@ -14,6 +14,7 @@ import {
   DefaultValuePipe,
 } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags, ApiQuery, ApiParam, ApiBody } from '@nestjs/swagger';
+import { COMMENTS_STREAM_DOC } from './docs/comments-stream.doc';
 import { Response } from 'express';
 import { CommentsService } from './services/comments.service';
 import { CreateCommentDto } from './dto';
@@ -125,7 +126,10 @@ export class CommentsController {
   }
 
   @Get('stream/:tokenAddress')
-  @ApiOperation({ summary: 'Stream comments for a token via Server-Sent Events' })
+  @ApiOperation({
+    summary: 'Stream comments for a token via Server-Sent Events',
+    description: COMMENTS_STREAM_DOC,
+  })
   @ApiParam({ name: 'tokenAddress', description: 'Token address to stream comments for' })
   @ApiQuery({ name: 'initial', required: false, description: 'Number of initial comments to send (default: 30, max: 100)' })
   @ApiResponse({ status: 200, description: 'SSE stream of comments' })

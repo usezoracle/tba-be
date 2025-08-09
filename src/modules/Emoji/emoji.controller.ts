@@ -12,6 +12,7 @@ import {
   DefaultValuePipe,
 } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags, ApiParam, ApiQuery } from '@nestjs/swagger';
+import { EMOJI_STREAM_DOC } from './docs/example.doc';
 import { Response } from 'express';
 import { EmojiService } from './services/emoji.service';
 import { ReactEmojiDto } from './dto';
@@ -89,7 +90,10 @@ export class EmojiController {
   }
 
   @Get('stream/:tokenAddress')
-  @ApiOperation({ summary: 'Stream emoji reactions for a token via Server-Sent Events' })
+  @ApiOperation({
+    summary: 'Stream emoji reactions for a token via Server-Sent Events',
+    description: EMOJI_STREAM_DOC,
+  })
   @ApiParam({ name: 'tokenAddress', description: 'Token address to stream emoji reactions for' })
   @ApiResponse({ status: 200, description: 'SSE stream of emoji reactions' })
   async stream(
