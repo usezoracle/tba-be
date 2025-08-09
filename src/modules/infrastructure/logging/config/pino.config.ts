@@ -4,7 +4,7 @@ import { Params } from 'nestjs-pino';
 export const createPinoConfig = (configService: ConfigService): Params => {
   const isDevelopment = configService.get('NODE_ENV') !== 'production';
   const logLevel =
-    configService.get('LOG_LEVEL') || (isDevelopment ? 'debug' : 'info');
+    configService.get('LOG_LEVEL') || (isDevelopment ? 'warn' : 'info');
 
   return {
     pinoHttp: {
@@ -40,35 +40,25 @@ export const createPinoConfig = (configService: ConfigService): Params => {
       // ISO timestamp for consistency
       timestamp: () => `,"timestamp":"${new Date().toISOString()}"`,
 
-      // Request/Response serializers for HTTP logging
+      // Simplified request/response serializers for HTTP logging
       serializers: {
         req: (req: any) => ({
           method: req.method,
           url: req.url,
+          // Only log essential headers
           headers: {
             'user-agent': req.headers['user-agent'],
-            'content-type': req.headers['content-type'],
-            'x-correlation-id': req.headers['x-correlation-id'],
           },
-          remoteAddress: req.remoteAddress,
-          remotePort: req.remotePort,
         }),
         res: (res: any) => ({
           statusCode: res.statusCode,
-          headers: {
-            'content-type': res.headers?.['content-type'],
-          },
         }),
         err: (err: any) => ({
           type: err.type,
           message: err.message,
-          stack: err.stack,
           code: err.code,
         }),
       },
-
-      // Async logging for better performance (non-blocking)
-      // sync: false, // This property is not supported in current version
 
       // Custom log levels
       customLevels: {
@@ -87,13 +77,8 @@ export const createPinoConfig = (configService: ConfigService): Params => {
         censor: '[REDACTED]',
       },
 
-      // Auto-logging for HTTP requests
-      autoLogging: {
-        ignore: (req: any) => {
-          // Don't log health check requests to reduce noise
-          return req.url === '/health' || req.url === '/api/v1/health';
-        },
-      },
+      // Disable auto-logging to reduce noise
+      autoLogging: false,
     },
   };
 };

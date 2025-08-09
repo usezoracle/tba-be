@@ -4,15 +4,13 @@ import { PrismaService } from '../../infrastructure/database';
 import { RedisService } from '../../infrastructure/redis/redis.service';
 import { EventBusService } from '../../infrastructure/events/bus/event-bus.service';
 import { CommentCreatedEvent } from '../../infrastructure/events/definitions/comment-created.event';
-
-export interface CreateCommentDto {
-  tokenAddress: string;
-  walletAddress: string;
-  content: string;
-}
+import { PrismaClient } from '@prisma/client';
+import { CreateCommentDto } from '../dto';
 
 @Injectable()
 export class CommentsService {
+  private readonly prismaClient: PrismaClient;
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly redis: RedisService,
@@ -20,6 +18,7 @@ export class CommentsService {
     private readonly logger: PinoLogger,
   ) {
     this.logger.setContext(CommentsService.name);
+    this.prismaClient = this.prisma as PrismaClient;
   }
 
   private getListKey(tokenAddress: string) {
@@ -36,13 +35,28 @@ export class CommentsService {
       throw new Error('Invalid wallet address format');
     }
 
-    // Find user by wallet
-    const user = await (this.prisma as any).user.findUnique({
-      where: { walletAddress: dto.walletAddress.toLowerCase() },
-      select: { id: true, walletAddress: true },
-    });
-    if (!user) {
-      throw new Error('User not found');
+    // Find or create user by wallet
+    let user;
+    try {
+      user = await this.prismaClient.user.findUnique({
+        where: { walletAddress: dto.walletAddress.toLowerCase() },
+        select: { id: true, walletAddress: true },
+      });
+
+      if (!user) {
+        // Create user if they don't exist - this must be atomic
+        user = await this.prismaClient.user.create({
+          data: {
+            walletAddress: dto.walletAddress.toLowerCase(),
+          },
+          select: { id: true, walletAddress: true },
+        });
+
+        this.logger.info(`Created new user for wallet: ${dto.walletAddress}`);
+      }
+    } catch (dbError) {
+      this.logger.error('Database connection failed', dbError);
+      throw new Error('Database connection failed. Please try again later.');
     }
 
     // Publish event for async processing (non-blocking)
@@ -89,29 +103,31 @@ export class CommentsService {
     }
 
     // Fallback to DB and warm Redis
-    const comments = await (this.prisma as any).comment.findMany({
-      where: { tokenAddress: tokenAddress.toLowerCase() },
-      orderBy: { createdAt: 'desc' },
-      take: limit,
-      include: {
-        user: { select: { id: true, walletAddress: true } },
-      },
-    });
-
-    // Warm Redis list maintaining newest-first (LPUSH from oldest to newest)
     try {
-      const client = this.redis.getClient();
-      const pipeline = client.multi();
-      for (let i = comments.length - 1; i >= 0; i -= 1) {
-        pipeline.lpush(listKey, JSON.stringify(comments[i]));
-      }
-      pipeline.ltrim(listKey, 0, 29);
-      await pipeline.exec();
-    } catch (error) {
-      this.logger.error('Failed to warm Redis comments list from DB', error);
-    }
+      const comments = await this.prismaClient.comment.findMany({
+        where: { tokenAddress: tokenAddress.toLowerCase() },
+        orderBy: { createdAt: 'desc' },
+        take: limit,
+        include: {
+          user: { select: { id: true, walletAddress: true } },
+        },
+      });
 
-    return comments;
+      // Warm Redis list maintaining newest-first (LPUSH from oldest to newest)
+      try {
+        for (let i = comments.length - 1; i >= 0; i -= 1) {
+          await this.redis.lpush(listKey, JSON.stringify(comments[i]));
+        }
+        await this.redis.ltrim(listKey, 0, 29);
+      } catch (error) {
+        this.logger.error('Failed to warm Redis comments list from DB', error);
+      }
+
+      return comments;
+    } catch (error) {
+      this.logger.error('Failed to get comments from database', error);
+      return [];
+    }
   }
 }
 

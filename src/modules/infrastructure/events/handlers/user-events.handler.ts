@@ -3,6 +3,22 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PinoLogger } from 'nestjs-pino';
 import { UserCreatedEvent } from '../definitions/user-created.event';
 
+interface WatchlistTokenAddedEvent {
+  eventName: 'user.watchlist.token.added';
+  aggregateId: string;
+  userId: string;
+  tokenAddresses: string[];
+  timestamp: string;
+}
+
+interface WatchlistTokenRemovedEvent {
+  eventName: 'user.watchlist.token.removed';
+  aggregateId: string;
+  userId: string;
+  tokenAddresses: string[];
+  timestamp: string;
+}
+
 @Injectable()
 export class UserEventsHandler implements OnModuleInit {
   constructor(
@@ -47,12 +63,12 @@ export class UserEventsHandler implements OnModuleInit {
     // - Send welcome notification
   }
 
-  async handleTokenAddedToWatchlist(event: any): Promise<void> {
+  async handleTokenAddedToWatchlist(event: WatchlistTokenAddedEvent): Promise<void> {
     this.logger.info(
-      `Token added to watchlist: ${event.tokenAddress} for user: ${event.userId}`,
+      `Tokens added to watchlist: ${event.tokenAddresses.length} tokens for user: ${event.userId}`,
       {
         userId: event.userId,
-        tokenAddress: event.tokenAddress,
+        tokenAddresses: event.tokenAddresses,
         timestamp: event.timestamp,
         eventType: 'user.watchlist.token.added',
       },
@@ -64,14 +80,17 @@ export class UserEventsHandler implements OnModuleInit {
     // - Initialize token tracking
     // - Send analytics event
     // - Update user preferences
+    // - Trigger price alerts
+    // - Update user dashboard
+    // - Send email notification
   }
 
-  async handleTokenRemovedFromWatchlist(event: any): Promise<void> {
+  async handleTokenRemovedFromWatchlist(event: WatchlistTokenRemovedEvent): Promise<void> {
     this.logger.info(
-      `Token removed from watchlist: ${event.tokenAddress} for user: ${event.userId}`,
+      `Tokens removed from watchlist: ${event.tokenAddresses.length} tokens for user: ${event.userId}`,
       {
         userId: event.userId,
-        tokenAddress: event.tokenAddress,
+        tokenAddresses: event.tokenAddresses,
         timestamp: event.timestamp,
         eventType: 'user.watchlist.token.removed',
       },
@@ -82,5 +101,8 @@ export class UserEventsHandler implements OnModuleInit {
     // - Stop token tracking
     // - Send analytics event
     // - Update user preferences
+    // - Remove price alerts
+    // - Update user dashboard
+    // - Send confirmation email
   }
 }

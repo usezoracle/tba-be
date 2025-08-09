@@ -1,11 +1,11 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { EmojiController } from './emoji.controller';
 import { EmojiService } from './services/emoji.service';
 import { PrismaModule } from '../infrastructure/database';
 import { RedisModule } from '../infrastructure/redis';
 import { LoggingModule } from '../infrastructure/logging';
 import { EventBusModule } from '../infrastructure/events';
+import { EmojiController } from './emoji.controller';
 
 @Module({
   imports: [ConfigModule, PrismaModule, RedisModule, LoggingModule, EventBusModule],

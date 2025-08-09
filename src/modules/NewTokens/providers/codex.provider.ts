@@ -1,23 +1,16 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Codex } from "@codex-data/sdk";
-import { createClient } from "graphql-ws";
+import { createClient, Client } from 'graphql-ws';
+import WebSocket from 'ws';
 import { EventBusService } from '../../infrastructure/events/bus/event-bus.service';
 import { PinoLogger } from 'nestjs-pino';
-import { 
-  TokenInfo, 
-  Launchpad, 
-  Token, 
-  TokenCreatedData, 
-  SubscriptionResponse,
-  NewTokenCreatedEvent
-} from './interfaces';
+import { NewTokenCreatedEvent } from './interfaces';
+import { LaunchpadBatchItem } from '../interfaces/interfaces';
 
 @Injectable()
-export class CodexProvider implements OnModuleInit {
-  private readonly codex: Codex;
-  private readonly client: ReturnType<typeof createClient>;
-  private subscription: any;
+export class CodexProvider implements OnModuleInit, OnModuleDestroy {
+  private client: Client | null = null;
+  private unsubscribe: (() => void) | null = null;
 
   constructor(
     private readonly configService: ConfigService,
@@ -25,168 +18,112 @@ export class CodexProvider implements OnModuleInit {
     private readonly logger: PinoLogger,
   ) {
     this.logger.setContext(CodexProvider.name);
-
-    const apiKey = this.configService.get('codex.apiKey');
-    const baseUrl = this.configService.get('codex.baseUrl');
-    this.codex = new Codex(apiKey);
-    
-    this.client = createClient({
-      url: baseUrl,
-      connectionParams: {
-        Authorization: apiKey,
-      },
-    });
   }
 
   async onModuleInit() {
-    this.logger.info('Starting Codex subscription for new tokens...');
-    await this.startSubscription();
+    // this.logger.info('Starting Codex subscription');
+    // this.startSubscription();
   }
 
-  async startSubscription() {
-    try {
-      this.subscription = this.client.subscribe(
-        {
-          query: `
-            subscription {
-              onTokenCreated {
-                token {
-                  name
-                  symbol
-                  address
-                  networkId
-                  createdAt
-                  info {
-                    imageLargeUrl
-                  }
-                  launchpad {
-                    graduationPercent
-                    launchpadProtocol
-                  }
-                }
-                priceUSD
-                marketCap
-                volume24
-                holders
-              }
-            }
-          `,
-        },
-        {
-          next: (data: SubscriptionResponse) => {
-            const token = data.data?.onTokenCreated;
-            if (!token) return;
-
-            // Filter for TBA tokens (Base network - networkId 8453)
-            const isTbaToken = token.token.networkId === 8453 &&
-                             token.token.launchpad?.launchpadProtocol === 'Baseapp';
-
-            // Filter for Zora tokens (Zora network - networkId 324)
-            const isZoraToken = token.token.networkId === 324 &&
-                              (token.token.launchpad?.launchpadProtocol === 'ZoraV4' ||
-                               token.token.launchpad?.launchpadProtocol === 'ZoraCreatorV4');
-
-            if (isTbaToken) {
-              // Emit event for TBA token
-              const tbaEvent: NewTokenCreatedEvent = {
-                eventName: 'new-token-created',
-                aggregateId: token.token.address,
-                name: token.token.name,
-                symbol: token.token.symbol,
-                address: token.token.address,
-                network: 'Base',
-                protocol: 'TBA',
-                networkId: token.token.networkId,
-                createdAt: token.token.createdAt,
-                priceUSD: token.priceUSD,
-                marketCap: token.marketCap,
-                volume24: token.volume24,
-                holders: token.holders,
-                imageLargeUrl: token.token.info?.imageLargeUrl,
-                graduationPercent: token.token.launchpad?.graduationPercent,
-                launchpadProtocol: token.token.launchpad?.launchpadProtocol,
-                timestamp: new Date().toISOString(),
-              };
-
-              this.eventBus.publish(tbaEvent);
-
-              this.logger.info('New TBA token created on Base:', {
-                name: token.token.name,
-                symbol: token.token.symbol,
-                address: token.token.address,
-                network: 'Base',
-                protocol: 'TBA',
-                createdAt: token.token.createdAt,
-                priceUSD: token.priceUSD,
-                marketCap: token.marketCap,
-                volume24: token.volume24,
-                holders: token.holders
-              });
-            }
-
-            if (isZoraToken) {
-              // Emit event for Zora token
-              const zoraEvent: NewTokenCreatedEvent = {
-                eventName: 'new-token-created',
-                aggregateId: token.token.address,
-                name: token.token.name,
-                symbol: token.token.symbol,
-                address: token.token.address,
-                network: 'Zora V4',
-                protocol: token.token.launchpad?.launchpadProtocol || 'Unknown',
-                networkId: token.token.networkId,
-                createdAt: token.token.createdAt,
-                priceUSD: token.priceUSD,
-                marketCap: token.marketCap,
-                volume24: token.volume24,
-                holders: token.holders,
-                imageLargeUrl: token.token.info?.imageLargeUrl,
-                graduationPercent: token.token.launchpad?.graduationPercent,
-                launchpadProtocol: token.token.launchpad?.launchpadProtocol,
-                timestamp: new Date().toISOString(),
-              };
-
-              this.eventBus.publish(zoraEvent);
-
-              this.logger.info('New Zora token created:', {
-                name: token.token.name,
-                symbol: token.token.symbol,
-                address: token.token.address,
-                network: 'Zora V4',
-                protocol: token.token.launchpad?.launchpadProtocol,
-                createdAt: token.token.createdAt,
-                priceUSD: token.priceUSD,
-                marketCap: token.marketCap,
-                volume24: token.volume24,
-                holders: token.holders
-              });
-            }
-          },
-          error: (error) => {
-            this.logger.error('Codex subscription error:', error);
-          },
-          complete: () => {
-            this.logger.warn('Codex subscription completed');
-          },
-        },
-      );
-
-      this.logger.info('Codex subscription started successfully');
-    } catch (error) {
-      this.logger.error('Failed to start Codex subscription:', error);
-      throw error;
+  onModuleDestroy() {
+    if (this.unsubscribe) {
+      this.unsubscribe();
+      this.unsubscribe = null;
     }
   }
 
-  // Legacy method for backward compatibility
-  subscribeToNewTokens() {
-    return this.subscription;
-  }
+  private startSubscription(): void {
+    const apiKey = this.configService.get<string>('codex.apiKey');
+    const url = this.configService.get<string>('codex.baseUrl') as string;
 
-  getSubscriptionStatus() {
-    return {
-      active: !!this.subscription,
-      timestamp: new Date().toISOString(),
+    this.client = createClient({
+      url,
+      webSocketImpl: WebSocket,
+      connectionParams: { Authorization: apiKey },
+      on: {
+        connected: () => this.logger.info('Codex WS connected'),
+        closed: (e) => this.logger.warn('Codex WS closed', { code: (e as CloseEvent).code }),
+      },
+    });
+
+    const variables = {
+      input: {
+        protocols: ['Baseapp', 'ZoraV4', 'ZoraCreatorV4'],
+        networkIds: [8453, 324],
+        eventTypes: ['Created', 'Migrated'],
+      },
     };
+
+    const dispose = this.client.subscribe(
+      {
+        query: `
+          subscription ($input: OnLaunchpadTokenEventBatchInput!) {
+            onLaunchpadTokenEventBatch(input: $input) {
+              eventType
+              token {
+                name
+                symbol
+                address
+                networkId
+                createdAt
+                info { imageLargeUrl }
+                launchpad { graduationPercent launchpadProtocol }
+              }
+              priceUSD: priceUsd
+              marketCap
+              volume24
+              holders
+              timestamp
+            }
+          }
+        `,
+        variables,
+      },
+      {
+        next: (payload: { data?: { onLaunchpadTokenEventBatch?: LaunchpadBatchItem[] } }) => {
+          const items = payload?.data?.onLaunchpadTokenEventBatch || [];
+          for (const item of items) {
+            const token = item.token;
+            if (!token?.address || typeof token.networkId !== 'number') continue;
+
+            const protocol = token.launchpad?.launchpadProtocol;
+            const networkId = token.networkId;
+
+            const isTbaBase = networkId === 8453 && protocol === 'Baseapp';
+            const isZora = networkId === 324 && (protocol === 'ZoraV4' || protocol === 'ZoraCreatorV4');
+            if (!isTbaBase && !isZora) continue;
+
+            const event: NewTokenCreatedEvent = {
+              eventName: 'new-token-created',
+              aggregateId: token.address,
+              name: token.name ?? 'Unknown',
+              symbol: token.symbol ?? 'Unknown',
+              address: token.address,
+              network: isTbaBase ? 'Base' : 'Zora V4',
+              protocol: isTbaBase ? 'TBA' : protocol || 'Unknown',
+              networkId,
+              createdAt: token.createdAt || new Date().toISOString(),
+              priceUSD: item.priceUSD,
+              marketCap: item.marketCap,
+              volume24: item.volume24,
+              holders: item.holders ?? 0,
+              imageLargeUrl: token.info?.imageLargeUrl,
+              graduationPercent: token.launchpad?.graduationPercent ?? 0,
+              launchpadProtocol: protocol,
+              timestamp: item.timestamp || new Date().toISOString(),
+            };
+
+            this.eventBus.publish(event);
+          }
+        },
+        error: (error: unknown) => {
+          this.logger.error('Codex subscription error', { error: String(error) });
+        },
+        complete: () => this.logger.warn('Codex subscription completed'),
+      },
+    );
+
+    this.unsubscribe = () => dispose();
+    this.logger.info('Codex subscription initialized');
   }
 }

@@ -8,10 +8,13 @@ import {
   HttpCode,
   HttpStatus,
   BadRequestException,
+  ParseIntPipe,
+  DefaultValuePipe,
 } from '@nestjs/common';
-import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiOperation, ApiResponse, ApiTags, ApiParam, ApiQuery } from '@nestjs/swagger';
 import { Response } from 'express';
-import { EmojiService, ReactEmojiDto } from './services/emoji.service';
+import { EmojiService } from './services/emoji.service';
+import { ReactEmojiDto } from './dto';
 import { PinoLogger } from 'nestjs-pino';
 import { RedisService } from '../infrastructure/redis/redis.service';
 
@@ -50,14 +53,44 @@ export class EmojiController {
     try {
       const result = await this.emoji.react(dto);
       return { success: true, data: result };
+    } catch (error: unknown) {
+      this.logger.error('Failed to process emoji reaction', error as any);
+      throw new BadRequestException((error as Error)?.message || 'Failed to react');
+    }
+  }
+
+  @Get(':tokenAddress')
+  @ApiOperation({ summary: 'Get emoji reaction counts for a token' })
+  @ApiParam({ name: 'tokenAddress', description: 'Token address to get emoji counts for' })
+  @ApiResponse({
+    status: 200,
+    description: 'Emoji counts retrieved successfully',
+    schema: {
+      example: {
+        success: true,
+        data: {
+          like: '5',
+          love: '3',
+          laugh: '1',
+          wow: '2',
+          sad: '0'
+        }
+      }
+    }
+  })
+  async getCounts(@Param('tokenAddress') tokenAddress: string) {
+    try {
+      const counts = await this.emoji.getCounts(tokenAddress);
+      return { success: true, data: counts };
     } catch (error) {
-      this.logger.error('Failed to process emoji reaction', error);
-      throw new BadRequestException(error.message);
+      this.logger.error('Failed to get emoji counts', error);
+      throw new BadRequestException('Failed to get emoji counts');
     }
   }
 
   @Get('stream/:tokenAddress')
   @ApiOperation({ summary: 'Stream emoji reactions for a token via Server-Sent Events' })
+  @ApiParam({ name: 'tokenAddress', description: 'Token address to stream emoji reactions for' })
   @ApiResponse({ status: 200, description: 'SSE stream of emoji reactions' })
   async stream(
     @Param('tokenAddress') tokenAddress: string,

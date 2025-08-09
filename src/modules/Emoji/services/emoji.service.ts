@@ -3,12 +3,7 @@ import { PinoLogger } from 'nestjs-pino';
 import { RedisService } from '../../infrastructure/redis/redis.service';
 import { EventBusService } from '../../infrastructure/events/bus/event-bus.service';
 import { EmojiReactedEvent, EmojiType } from '../../infrastructure/events/definitions/emoji-reacted.event';
-
-export interface ReactEmojiDto {
-  tokenAddress: string;
-  emoji: EmojiType;
-  increment: 1 | 2 | 3;
-}
+import { ReactEmojiDto } from '../dto';
 
 @Injectable()
 export class EmojiService {

@@ -5,11 +5,8 @@ export const config = {
     port: parseInt(process.env.PORT || '3000', 10),
   },
   redis: {
-    upstash: {
-      url: process.env.UPSTASH_REDIS_REST_URL,
-      token: process.env.UPSTASH_REDIS_REST_TOKEN,
-    },
-    url: process.env.REDIS_URL || process.env.UPSTASH_REDIS_REST_URL,
+    // Single ioredis URL (TLS in prod: rediss://default:<token>@<host>.upstash.io:6379)
+    url: process.env.UPSTASH_REDIS_URL,
   },
   database: {
     url: process.env.DATABASE_URL,

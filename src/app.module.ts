@@ -15,6 +15,8 @@ import { config } from './config/env.config';
 // Import feature modules
 import { NewTokensModule } from './modules/NewTokens';
 import { CommentsModule } from './modules/Comments';
+import { EmojiModule } from './modules/Emoji';
+import { WatchlistModule } from './modules/Watchlist';
 
 // Common
 import { HttpExceptionsFilter, TransformResponseInterceptor } from './common';
@@ -46,6 +48,8 @@ import { HttpExceptionsFilter, TransformResponseInterceptor } from './common';
     // Feature modules
     NewTokensModule,
     CommentsModule,
+    EmojiModule,
+    WatchlistModule,
   ],
   controllers: [AppController],
   providers: [

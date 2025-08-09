@@ -8,12 +8,8 @@ export const configValidationSchema = Joi.object({
   APP_NAME: Joi.string().default('NestJS API'),
   PORT: Joi.number().default(3000),
 
-  // Redis configuration (Upstash)
-  UPSTASH_REDIS_REST_URL: Joi.string().required(),
-  UPSTASH_REDIS_REST_TOKEN: Joi.string().required(),
-
-  // Redis URL for infrastructure (optional, can fallback to Upstash)
-  REDIS_URL: Joi.string().optional(),
+  // Redis configuration (ioredis URL only)
+  UPSTASH_REDIS_URL: Joi.string().uri().required(),
 
   // Database configuration
   DATABASE_URL: Joi.string().optional(),

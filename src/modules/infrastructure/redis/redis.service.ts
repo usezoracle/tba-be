@@ -1,38 +1,36 @@
-import { Injectable, Inject } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { PinoLogger } from 'nestjs-pino';
-import { ConfigType } from '@nestjs/config';
 import Redis from 'ioredis';
-import redisConfig from '../../../config/redis.config';
 
 @Injectable()
 export class RedisService {
   private readonly redis: Redis;
+  private readonly subscriber: Redis;
 
   constructor(
-    @Inject(redisConfig.KEY)
-    private readonly config: ConfigType<typeof redisConfig>,
     private readonly logger: PinoLogger,
   ) {
     this.logger.setContext(RedisService.name);
 
-    // Use ioredis for all Redis operations
+    // Use ioredis for all Redis operations (STRICT: full URL only, no fallback)
     const redisUrl = process.env.UPSTASH_REDIS_URL;
+    if (!redisUrl) {
+      this.logger.error(
+        'UPSTASH_REDIS_URL is not set. Please provide a full ioredis URL (e.g., rediss://default:<token>@<host>.upstash.io:6379)'
+      );
+      throw new Error('Missing UPSTASH_REDIS_URL');
+    }
+
+    // Primary client for commands and publishing
     this.redis = new Redis(redisUrl);
-    this.logger.info('Redis client initialized with ioredis');
+
+    // Dedicated subscriber client for Pub/Sub to avoid switching primary into subscriber mode
+    this.subscriber = new Redis(redisUrl);
+
+    this.logger.info('Redis clients initialized with ioredis (primary + subscriber)');
   }
 
-  /**
-   * Build ioredis URL from REST URL and token
-   */
-  private buildIoredisUrl(): string {
-    // Extract host from REST URL: https://host.upstash.io
-    const restUrl = this.config.url;
-    const host = restUrl.replace('https://', '').replace('.upstash.io', '');
-    const token = this.config.token;
-
-    // Build ioredis URL: rediss://default:token@host.upstash.io:6379
-    return `rediss://default:${token}@${host}.upstash.io:6379`;
-  }
+  // Note: No fallback URL builder. We strictly rely on UPSTASH_REDIS_URL.
 
   /**
    * Store data with expiration
@@ -47,7 +45,7 @@ export class RedisService {
       } else {
         await this.redis.set(key, JSON.stringify(data));
       }
-      this.logger.debug(`Successfully stored data at key: ${key}`);
+      // Reduced logging for performance
     } catch (error) {
       this.logger.error(`Failed to store data at key: ${key}`, error);
       throw error;
@@ -78,7 +76,7 @@ export class RedisService {
   async delete(key: string): Promise<void> {
     try {
       await this.redis.del(key);
-      this.logger.debug(`Successfully deleted key: ${key}`);
+      // Reduced logging for performance
     } catch (error) {
       this.logger.error(`Failed to delete key: ${key}`, error);
       throw error;
@@ -189,6 +187,22 @@ export class RedisService {
   }
 
   /**
+   * Get all fields/values from a hash
+   * @param key Redis hash key
+   * @returns Record of field -> value (as strings)
+   */
+  async hgetall(key: string): Promise<Record<string, string>> {
+    try {
+      const result = await this.redis.hgetall(key);
+      this.logger.debug(`Successfully retrieved hash: ${key}`);
+      return result as Record<string, string>;
+    } catch (error) {
+      this.logger.error(`Failed to get hash: ${key}`, error);
+      return {} as Record<string, string>;
+    }
+  }
+
+  /**
    * Push to list (left push)
    * @param key Redis key
    * @param value Value to push
@@ -290,7 +304,7 @@ export class RedisService {
    */
   subscribe(channel: string, callback: (message: string) => void): void {
     try {
-      this.redis.subscribe(channel, (err) => {
+      this.subscriber.subscribe(channel, (err) => {
         if (err) {
           this.logger.error(`Failed to subscribe to channel: ${channel}`, err);
         } else {
@@ -298,7 +312,7 @@ export class RedisService {
         }
       });
 
-      this.redis.on('message', (receivedChannel, message) => {
+      this.subscriber.on('message', (receivedChannel, message) => {
         if (receivedChannel === channel) {
           callback(message);
         }
@@ -314,7 +328,7 @@ export class RedisService {
    */
   unsubscribe(channel: string): void {
     try {
-      this.redis.unsubscribe(channel);
+      this.subscriber.unsubscribe(channel);
       this.logger.debug(`Successfully unsubscribed from channel: ${channel}`);
     } catch (error) {
       this.logger.error(`Failed to unsubscribe from channel: ${channel}`, error);

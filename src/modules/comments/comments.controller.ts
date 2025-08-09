@@ -13,9 +13,10 @@ import {
   NotFoundException,
   DefaultValuePipe,
 } from '@nestjs/common';
-import { ApiOperation, ApiResponse, ApiTags, ApiQuery, ApiParam } from '@nestjs/swagger';
+import { ApiOperation, ApiResponse, ApiTags, ApiQuery, ApiParam, ApiBody } from '@nestjs/swagger';
 import { Response } from 'express';
-import { CommentsService, CreateCommentDto } from './services/comments.service';
+import { CommentsService } from './services/comments.service';
+import { CreateCommentDto } from './dto';
 import { PinoLogger } from 'nestjs-pino';
 import { RedisService } from '../infrastructure/redis/redis.service';
 
@@ -33,6 +34,7 @@ export class CommentsController {
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Create a new comment' })
+  @ApiBody({ type: CreateCommentDto })
   @ApiResponse({ 
     status: 201, 
     description: 'Comment created successfully',
@@ -57,17 +59,22 @@ export class CommentsController {
   @ApiResponse({ status: 400, description: 'Invalid wallet address or missing required fields' })
   @ApiResponse({ status: 404, description: 'User not found' })
   async create(@Body() dto: CreateCommentDto) {
+    this.logger.info('Received comment creation request', { dto });
     try {
       const comment = await this.comments.create(dto);
       return { success: true, data: comment };
-    } catch (error) {
-      if (error.message === 'Invalid wallet address format') {
+    } catch (error: unknown) {
+      const message = (error as Error)?.message;
+      this.logger.error('Failed to create comment', { error: message, dto });
+      if (message === 'Invalid wallet address format') {
         throw new BadRequestException('Invalid wallet address format');
       }
-      if (error.message === 'User not found') {
+      if (message === 'User not found') {
         throw new NotFoundException('User not found');
       }
-      this.logger.error('Failed to create comment', error);
+      if (message?.includes('Database connection failed') || message?.includes('table') || message?.includes('does not exist')) {
+        throw new BadRequestException('Database connection failed. Please try again later.');
+      }
       throw new BadRequestException('Failed to create comment');
     }
   }
