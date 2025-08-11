@@ -7,7 +7,30 @@ import { AppModule } from './app.module';
 import { GracefulShutdownUtil } from './modules/infrastructure/logging/utils/graceful-shutdown.util';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, { bufferLogs: true });
+  // CORS configuration: use ONLY the origins provided via env (comma-separated)
+  const configuredOriginsEnv = process.env.CORS_ORIGINS;
+  const configuredOriginsList = (configuredOriginsEnv || '')
+    .split(',')
+    .map((o) => o.trim())
+    .filter(Boolean);
+
+  const app = await NestFactory.create(AppModule, {
+    bufferLogs: true,
+    cors: {
+      origin: configuredOriginsList,
+      credentials: true,
+      methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
+      allowedHeaders: [
+        'Content-Type',
+        'Authorization',
+        'Origin',
+        'X-Requested-With',
+        'Cache-Control',
+        'ngrok-skip-browser-warning',
+      ],
+      optionsSuccessStatus: 204,
+    },
+  });
 
   // Use Pino logger
   app.useLogger(app.get(Logger));
@@ -39,11 +62,7 @@ async function bootstrap() {
 
   // Global filters and interceptors are now configured in app.module.ts
 
-  // CORS
-  app.enableCors({
-    origin: configService.get('CORS_ORIGINS')?.split(',') || '*',
-    credentials: true,
-  });
+  // Remove later CORS setup; using bootstrap cors ensures preflight handled before routes
 
   // Swagger documentation with standardized response examples
   if (configService.get('NODE_ENV') !== 'production') {
@@ -56,7 +75,9 @@ async function bootstrap() {
       .addTag('tokens', 'Token-related endpoints')
       .addTag('health', 'Health check endpoints')
       .addTag('app', 'Application information')
-      .addServer('http://localhost:3000', 'Development server')
+      // Relative server first to work with any host (e.g., ngrok) and avoid CORS
+      .addServer('/', 'Current host')
+      .addServer('http://localhost:3000', 'Local development')
       .build();
 
     const document = SwaggerModule.createDocument(app, config);

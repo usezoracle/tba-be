@@ -51,13 +51,7 @@ export class EmojiController {
   })
   @ApiResponse({ status: 400, description: 'Invalid emoji type or increment value' })
   async react(@Body() dto: ReactEmojiDto) {
-    try {
-      const result = await this.emoji.react(dto);
-      return { success: true, data: result };
-    } catch (error: unknown) {
-      this.logger.error('Failed to process emoji reaction', error as any);
-      throw new BadRequestException((error as Error)?.message || 'Failed to react');
-    }
+    return this.emoji.react(dto);
   }
 
   @Get(':tokenAddress')
@@ -80,13 +74,7 @@ export class EmojiController {
     }
   })
   async getCounts(@Param('tokenAddress') tokenAddress: string) {
-    try {
-      const counts = await this.emoji.getCounts(tokenAddress);
-      return { success: true, data: counts };
-    } catch (error) {
-      this.logger.error('Failed to get emoji counts', error);
-      throw new BadRequestException('Failed to get emoji counts');
-    }
+    return this.emoji.getCounts(tokenAddress);
   }
 
   @Get('stream/:tokenAddress')

@@ -60,30 +60,14 @@ export class CommentsController {
   @ApiResponse({ status: 400, description: 'Invalid wallet address or missing required fields' })
   @ApiResponse({ status: 404, description: 'User not found' })
   async create(@Body() dto: CreateCommentDto) {
-    this.logger.info('Received comment creation request', { dto });
-    try {
-      const comment = await this.comments.create(dto);
-      return { success: true, data: comment };
-    } catch (error: unknown) {
-      const message = (error as Error)?.message;
-      this.logger.error('Failed to create comment', { error: message, dto });
-      if (message === 'Invalid wallet address format') {
-        throw new BadRequestException('Invalid wallet address format');
-      }
-      if (message === 'User not found') {
-        throw new NotFoundException('User not found');
-      }
-      if (message?.includes('Database connection failed') || message?.includes('table') || message?.includes('does not exist')) {
-        throw new BadRequestException('Database connection failed. Please try again later.');
-      }
-      throw new BadRequestException('Failed to create comment');
-    }
+    this.logger.info('Received comment creation request');
+    return this.comments.create(dto);
   }
 
   @Get(':tokenAddress')
   @ApiOperation({ summary: 'Get latest comments for a token' })
   @ApiParam({ name: 'tokenAddress', description: 'Token address to get comments for' })
-  @ApiQuery({ name: 'limit', required: false, description: 'Number of comments to return (default: 30, max: 100)' })
+  @ApiQuery({ name: 'limit', required: false, description: 'Number of comments to return (default: 50, max: 100)' })
   @ApiResponse({ 
     status: 200, 
     description: 'Comments retrieved successfully',
@@ -109,20 +93,10 @@ export class CommentsController {
   })
   async getComments(
     @Param('tokenAddress') tokenAddress: string,
-    @Query('limit', new DefaultValuePipe(30), ParseIntPipe) limit: number,
+    @Query('limit', new DefaultValuePipe(50), ParseIntPipe) limit: number,
   ) {
-    try {
-      const validatedLimit = Math.min(Math.max(limit, 1), 100);
-      const comments = await this.comments.getLatest(tokenAddress, validatedLimit);
-      return { 
-        success: true, 
-        data: comments,
-        total: comments.length
-      };
-    } catch (error) {
-      this.logger.error('Failed to get comments', error);
-      throw new BadRequestException('Failed to get comments');
-    }
+    const validatedLimit = Math.min(Math.max(limit, 1), 100);
+    return this.comments.getLatest(tokenAddress, validatedLimit);
   }
 
   @Get('stream/:tokenAddress')
@@ -131,12 +105,12 @@ export class CommentsController {
     description: COMMENTS_STREAM_DOC,
   })
   @ApiParam({ name: 'tokenAddress', description: 'Token address to stream comments for' })
-  @ApiQuery({ name: 'initial', required: false, description: 'Number of initial comments to send (default: 30, max: 100)' })
+  @ApiQuery({ name: 'initial', required: false, description: 'Number of initial comments to send (default: 50, max: 100)' })
   @ApiResponse({ status: 200, description: 'SSE stream of comments' })
   async stream(
     @Param('tokenAddress') tokenAddress: string,
     @Res() res: Response,
-    @Query('initial', new DefaultValuePipe(30), ParseIntPipe) initial: number,
+    @Query('initial', new DefaultValuePipe(50), ParseIntPipe) initial: number,
   ) {
     const limit = Math.min(Math.max(initial, 1), 100);
     const channel = `comments:${tokenAddress.toLowerCase()}`;

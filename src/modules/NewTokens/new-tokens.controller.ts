@@ -54,7 +54,7 @@ export class NewTokensController {
   ): Promise<PaginatedTokensResponse> {
     const numericOffset = offset !== undefined ? Math.max(0, parseInt(offset, 10) || 0) : undefined;
     this.logger.log(`Getting tokens - page: ${page}, limit: ${limit}${numericOffset !== undefined ? `, offset: ${numericOffset}` : ''}`);
-    return await this.newTokensService.getLatestTokens(page, limit, numericOffset);
+    return this.newTokensService.getLatestTokens(page, limit, numericOffset);
   }
 
   @Get('tokens/stream')

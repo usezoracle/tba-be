@@ -52,20 +52,11 @@ export class WatchlistController {
   @ApiResponse({ status: 400, description: 'Invalid input data' })
   @ApiResponse({ status: 500, description: 'Internal server error' })
   async addToWatchlist(@Body() dto: AddToWatchlistDto) {
-    try {
-      this.logger.info('Adding tokens to watchlist', {
-        walletAddress: dto.walletAddress,
-        tokenCount: dto.tokenAddresses.length,
-      });
-
-      const result = await this.watchlistService.addToWatchlist(dto);
-      return result;
-    } catch (error) {
-      this.logger.error('Failed to add tokens to watchlist', error);
-      throw new BadRequestException(
-        (error as Error)?.message || 'Failed to add tokens to watchlist',
-      );
-    }
+    this.logger.info('Adding tokens to watchlist', {
+      walletAddress: dto.walletAddress,
+      tokenCount: dto.tokenAddresses.length,
+    });
+    return this.watchlistService.addToWatchlist(dto);
   }
 
   @Delete('remove')
@@ -86,20 +77,11 @@ export class WatchlistController {
   @ApiResponse({ status: 404, description: 'User not found' })
   @ApiResponse({ status: 500, description: 'Internal server error' })
   async removeFromWatchlist(@Body() dto: RemoveFromWatchlistDto) {
-    try {
-      this.logger.info('Removing tokens from watchlist', {
-        walletAddress: dto.walletAddress,
-        tokenCount: dto.tokenAddresses.length,
-      });
-
-      const result = await this.watchlistService.removeFromWatchlist(dto);
-      return result;
-    } catch (error) {
-      this.logger.error('Failed to remove tokens from watchlist', error);
-      throw new BadRequestException(
-        (error as Error)?.message || 'Failed to remove tokens from watchlist',
-      );
-    }
+    this.logger.info('Removing tokens from watchlist', {
+      walletAddress: dto.walletAddress,
+      tokenCount: dto.tokenAddresses.length,
+    });
+    return this.watchlistService.removeFromWatchlist(dto);
   }
 
   @Get('get')
@@ -151,21 +133,12 @@ export class WatchlistController {
   @ApiResponse({ status: 404, description: 'User not found' })
   @ApiResponse({ status: 500, description: 'Internal server error' })
   async getWatchlist(@Query() dto: GetWatchlistDto) {
-    try {
-      this.logger.info('Getting watchlist', {
-        walletAddress: dto.walletAddress,
-        page: dto.page,
-        limit: dto.limit,
-      });
-
-      const result = await this.watchlistService.getWatchlist(dto);
-      return result;
-    } catch (error) {
-      this.logger.error('Failed to get watchlist', error);
-      throw new BadRequestException(
-        (error as Error)?.message || 'Failed to get watchlist',
-      );
-    }
+    this.logger.info('Getting watchlist', {
+      walletAddress: dto.walletAddress,
+      page: dto.page,
+      limit: dto.limit,
+    });
+    return this.watchlistService.getWatchlist(dto);
   }
 
   @Get('check/:walletAddress/:tokenAddress')
@@ -198,30 +171,11 @@ export class WatchlistController {
     @Param('walletAddress') walletAddress: string,
     @Param('tokenAddress') tokenAddress: string,
   ) {
-    try {
-      this.logger.info('Checking if token is in watchlist', {
-        walletAddress,
-        tokenAddress,
-      });
-
-      const isInWatchlist = await this.watchlistService.isTokenInWatchlist(
-        walletAddress,
-        tokenAddress,
-      );
-
-      return {
-        success: true,
-        isInWatchlist,
-        message: isInWatchlist
-          ? 'Token is in watchlist'
-          : 'Token is not in watchlist',
-      };
-    } catch (error) {
-      this.logger.error('Failed to check token in watchlist', error);
-      throw new BadRequestException(
-        (error as Error)?.message || 'Failed to check token in watchlist',
-      );
-    }
+    this.logger.info('Checking if token is in watchlist', {
+      walletAddress,
+      tokenAddress,
+    });
+    return this.watchlistService.isTokenInWatchlist(walletAddress, tokenAddress);
   }
 
   @Get('count/:walletAddress')
@@ -246,22 +200,8 @@ export class WatchlistController {
   @ApiResponse({ status: 400, description: 'Invalid wallet address' })
   @ApiResponse({ status: 500, description: 'Internal server error' })
   async getWatchlistCount(@Param('walletAddress') walletAddress: string) {
-    try {
-      this.logger.info('Getting watchlist count', { walletAddress });
-
-      const count = await this.watchlistService.getWatchlistCount(walletAddress);
-
-      return {
-        success: true,
-        count,
-        message: `User has ${count} tokens in watchlist`,
-      };
-    } catch (error) {
-      this.logger.error('Failed to get watchlist count', error);
-      throw new BadRequestException(
-        (error as Error)?.message || 'Failed to get watchlist count',
-      );
-    }
+    this.logger.info('Getting watchlist count', { walletAddress });
+    return this.watchlistService.getWatchlistCount(walletAddress);
   }
 }
 

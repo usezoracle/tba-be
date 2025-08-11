@@ -38,13 +38,13 @@ export class CommentEventsHandler implements OnModuleInit {
         },
       });
 
-      // Write-through cache: push to Redis list (newest-first) and trim to last 30
+      // Write-through cache: push to Redis list (newest-first) and trim to last 50
       try {
         const client = this.redisService.getClient();
         await client
           .multi()
           .lpush(listKey, JSON.stringify(comment))
-          .ltrim(listKey, 0, 29)
+          .ltrim(listKey, 0, 49)
           .exec();
       } catch (error) {
         this.logger.error('Failed to update Redis list for comments', error);
@@ -60,12 +60,12 @@ export class CommentEventsHandler implements OnModuleInit {
         this.logger.error('Failed to publish newComment', error);
       }
 
-      // Ensure database retains only the latest 30 for this token (prune older)
+      // Ensure database retains only the latest 50 for this token (prune older)
       try {
         const older = await (this.prismaService as any).comment.findMany({
           where: { tokenAddress: event.tokenAddress.toLowerCase() },
           orderBy: { createdAt: 'desc' },
-          skip: 30,
+          skip: 50,
           select: { id: true },
         });
         if (older.length > 0) {

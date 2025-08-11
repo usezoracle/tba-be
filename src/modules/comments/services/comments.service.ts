@@ -5,7 +5,7 @@ import { RedisService } from '../../infrastructure/redis/redis.service';
 import { EventBusService } from '../../infrastructure/events/bus/event-bus.service';
 import { CommentCreatedEvent } from '../../infrastructure/events/definitions/comment-created.event';
 import { PrismaClient } from '@prisma/client';
-import { CreateCommentDto } from '../dto';
+import { CreateCommentParams, CreateCommentResult } from '../interfaces/comments.interfaces';
 
 @Injectable()
 export class CommentsService {
@@ -29,9 +29,9 @@ export class CommentsService {
     return `comments:${tokenAddress.toLowerCase()}`;
   }
 
-  async create(dto: CreateCommentDto) {
+  async create(params: CreateCommentParams): Promise<CreateCommentResult> {
     // Basic wallet format validation (0x + 40 hex)
-    if (!/^0x[a-fA-F0-9]{40}$/.test(dto.walletAddress)) {
+    if (!/^0x[a-fA-F0-9]{40}$/.test(params.walletAddress)) {
       throw new Error('Invalid wallet address format');
     }
 
@@ -39,7 +39,7 @@ export class CommentsService {
     let user;
     try {
       user = await this.prismaClient.user.findUnique({
-        where: { walletAddress: dto.walletAddress.toLowerCase() },
+        where: { walletAddress: params.walletAddress.toLowerCase() },
         select: { id: true, walletAddress: true },
       });
 
@@ -47,12 +47,12 @@ export class CommentsService {
         // Create user if they don't exist - this must be atomic
         user = await this.prismaClient.user.create({
           data: {
-            walletAddress: dto.walletAddress.toLowerCase(),
+            walletAddress: params.walletAddress.toLowerCase(),
           },
           select: { id: true, walletAddress: true },
         });
 
-        this.logger.info(`Created new user for wallet: ${dto.walletAddress}`);
+        this.logger.info(`Created new user for wallet: ${params.walletAddress}`);
       }
     } catch (dbError) {
       this.logger.error('Database connection failed', dbError);
@@ -62,9 +62,9 @@ export class CommentsService {
     // Publish event for async processing (non-blocking)
     const event = new CommentCreatedEvent(
       `comment_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      dto.tokenAddress,
-      dto.walletAddress,
-      dto.content,
+      params.tokenAddress,
+      params.walletAddress,
+      params.content,
       user.id,
     );
 
@@ -73,8 +73,8 @@ export class CommentsService {
     // Return immediate response (event will be processed asynchronously)
     return {
       id: event.aggregateId,
-      content: dto.content,
-      tokenAddress: dto.tokenAddress.toLowerCase(),
+      content: params.content,
+      tokenAddress: params.tokenAddress.toLowerCase(),
       userId: user.id,
       user: { id: user.id, walletAddress: user.walletAddress },
       createdAt: new Date(),
@@ -82,7 +82,7 @@ export class CommentsService {
     };
   }
 
-  async getLatest(tokenAddress: string, limit = 30) {
+  async getLatest(tokenAddress: string, limit = 50) {
     const listKey = this.getListKey(tokenAddress);
     try {
       const raw = await this.redis.lrange(listKey, 0, Math.max(0, limit - 1));
@@ -118,7 +118,7 @@ export class CommentsService {
         for (let i = comments.length - 1; i >= 0; i -= 1) {
           await this.redis.lpush(listKey, JSON.stringify(comments[i]));
         }
-        await this.redis.ltrim(listKey, 0, 29);
+        await this.redis.ltrim(listKey, 0, 49);
       } catch (error) {
         this.logger.error('Failed to warm Redis comments list from DB', error);
       }
