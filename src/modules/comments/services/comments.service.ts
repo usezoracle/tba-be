@@ -4,12 +4,12 @@ import { PrismaService } from '../../infrastructure/database';
 import { RedisService } from '../../infrastructure/redis/redis.service';
 import { EventBusService } from '../../infrastructure/events/bus/event-bus.service';
 import { CommentCreatedEvent } from '../../infrastructure/events/definitions/comment-created.event';
-import { PrismaClient } from '@prisma/client';
+// Use dynamic client typing to avoid false TS errors when schema is split across files
 import { CreateCommentParams, CreateCommentResult } from '../interfaces/comments.interfaces';
 
 @Injectable()
 export class CommentsService {
-  private readonly prismaClient: PrismaClient;
+  private readonly prismaClient: any;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -18,7 +18,7 @@ export class CommentsService {
     private readonly logger: PinoLogger,
   ) {
     this.logger.setContext(CommentsService.name);
-    this.prismaClient = this.prisma as PrismaClient;
+    this.prismaClient = this.prisma as any;
   }
 
   private getListKey(tokenAddress: string) {

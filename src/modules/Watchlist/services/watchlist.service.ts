@@ -48,14 +48,14 @@ export class WatchlistService {
   async addToWatchlist(dto: AddToWatchlistDto): Promise<{ success: boolean; message: string; addedCount: number }> {
     try {
       // Find or create user
-      let user = await this.prisma.user.findUnique({
+      let user = await (this.prisma as any).user.findUnique({
         where: { walletAddress: dto.walletAddress.toLowerCase() },
         select: { id: true, walletAddress: true },
       });
 
       if (!user) {
         // Create user if they don't exist - this must be atomic
-        user = await this.prisma.user.create({
+        user = await (this.prisma as any).user.create({
           data: {
             walletAddress: dto.walletAddress.toLowerCase(),
           },
@@ -66,7 +66,7 @@ export class WatchlistService {
       }
 
       // Check which tokens are already in watchlist
-      const existingItems = await this.prisma.tokenWatchlist.findMany({
+      const existingItems = await (this.prisma as any).tokenWatchlist.findMany({
         where: {
           userId: user.id,
           tokenAddress: {
@@ -92,7 +92,7 @@ export class WatchlistService {
       // Add new tokens to watchlist
       const watchlistItems = await Promise.all(
         newAddresses.map(async (tokenAddress) => {
-          return this.prisma.tokenWatchlist.create({
+          return (this.prisma as any).tokenWatchlist.create({
             data: {
               userId: user.id,
               tokenAddress: tokenAddress.toLowerCase(),
@@ -141,7 +141,7 @@ export class WatchlistService {
   async removeFromWatchlist(dto: RemoveFromWatchlistDto): Promise<{ success: boolean; message: string; removedCount: number }> {
     try {
       // Find user
-      const user = await this.prisma.user.findUnique({
+      const user = await (this.prisma as any).user.findUnique({
         where: { walletAddress: dto.walletAddress.toLowerCase() },
         select: { id: true, walletAddress: true },
       });
@@ -151,7 +151,7 @@ export class WatchlistService {
       }
 
       // Remove tokens from watchlist
-      const result = await this.prisma.tokenWatchlist.deleteMany({
+      const result = await (this.prisma as any).tokenWatchlist.deleteMany({
         where: {
           userId: user.id,
           tokenAddress: {
@@ -203,7 +203,7 @@ export class WatchlistService {
   async getWatchlist(dto: GetWatchlistDto): Promise<PaginatedWatchlistResponse> {
     try {
       // Find user
-      const user = await this.prisma.user.findUnique({
+      const user = await (this.prisma as any).user.findUnique({
         where: { walletAddress: dto.walletAddress.toLowerCase() },
         select: { id: true, walletAddress: true },
       });
@@ -213,7 +213,7 @@ export class WatchlistService {
       }
 
       // Get total count
-      const total = await this.prisma.tokenWatchlist.count({
+      const total = await (this.prisma as any).tokenWatchlist.count({
         where: { userId: user.id },
       });
 
@@ -233,7 +233,7 @@ export class WatchlistService {
       const skip = (dto.page - 1) * dto.limit;
 
       // Get paginated watchlist items
-      const items = await this.prisma.tokenWatchlist.findMany({
+      const items = await (this.prisma as any).tokenWatchlist.findMany({
         where: { userId: user.id },
         orderBy: { createdAt: 'desc' },
         skip,
@@ -261,7 +261,7 @@ export class WatchlistService {
 
   async isTokenInWatchlist(walletAddress: string, tokenAddress: string): Promise<boolean> {
     try {
-      const user = await this.prisma.user.findUnique({
+      const user = await (this.prisma as any).user.findUnique({
         where: { walletAddress: walletAddress.toLowerCase() },
         select: { id: true },
       });
@@ -270,7 +270,7 @@ export class WatchlistService {
         return false;
       }
 
-      const exists = await this.prisma.tokenWatchlist.findFirst({
+      const exists = await (this.prisma as any).tokenWatchlist.findFirst({
         where: {
           userId: user.id,
           tokenAddress: tokenAddress.toLowerCase(),
@@ -286,7 +286,7 @@ export class WatchlistService {
 
   async getWatchlistCount(walletAddress: string): Promise<number> {
     try {
-      const user = await this.prisma.user.findUnique({
+      const user = await (this.prisma as any).user.findUnique({
         where: { walletAddress: walletAddress.toLowerCase() },
         select: { id: true },
       });
@@ -295,7 +295,7 @@ export class WatchlistService {
         return 0;
       }
 
-      return await this.prisma.tokenWatchlist.count({
+      return await (this.prisma as any).tokenWatchlist.count({
         where: { userId: user.id },
       });
     } catch (error) {

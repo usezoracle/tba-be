@@ -14,7 +14,7 @@ import { config } from './config/env.config';
 
 // Import feature modules
 import { NewTokensModule } from './modules/NewTokens';
-import { CommentsModule } from './modules/Comments';
+import { CommentsModule } from './modules/comments';
 import { EmojiModule } from './modules/Emoji';
 import { WatchlistModule } from './modules/Watchlist';
 
