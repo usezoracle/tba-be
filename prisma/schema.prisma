@@ -1,0 +1,14 @@
+// Main Prisma schema file. Configure generator and datasource here.
+
+generator client {
+  provider           = "prisma-client-js"
+  prismaSchemaFolder = "schema" // use models from prisma/schema/*.prisma
+}
+
+datasource db {
+  provider = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// Models are defined in files under prisma/schema/
