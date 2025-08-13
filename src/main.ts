@@ -5,6 +5,8 @@ import { ConfigService } from '@nestjs/config';
 import { Logger } from 'nestjs-pino';
 import { AppModule } from './app.module';
 import { GracefulShutdownUtil } from './modules/infrastructure/logging/utils/graceful-shutdown.util';
+import { PrismaService } from './modules/infrastructure/database/prisma/prisma.service';
+import { RedisService } from './modules/infrastructure/redis/redis.service';
 
 async function bootstrap() {
   // CORS configuration: use ONLY the origins provided via env (comma-separated)
@@ -89,6 +91,28 @@ async function bootstrap() {
   // Setup graceful shutdown
   GracefulShutdownUtil.setLogger(logger);
   GracefulShutdownUtil.setupGracefulShutdown(app);
+
+  // Ensure critical infra is up before starting HTTP server
+  try {
+    const prisma = app.get(PrismaService);
+    const redis = app.get(RedisService);
+
+    // Database connectivity
+    if (prisma && typeof prisma.$connect === 'function') {
+      await prisma.$connect();
+    }
+
+    // Redis connectivity
+    if (redis && typeof redis.ping === 'function') {
+      await redis.ping();
+    }
+  } catch (e) {
+    const logger = app.get(Logger);
+    logger.error('Startup checks failed. Ensure database and Redis are reachable.', e);
+    // Exit non-zero so process managers can restart
+    // eslint-disable-next-line no-process-exit
+    process.exit(1);
+  }
 
   await app.listen(port);
 

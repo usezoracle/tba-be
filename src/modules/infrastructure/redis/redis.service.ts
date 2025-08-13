@@ -156,6 +156,19 @@ export class RedisService {
   }
 
   /**
+   * Ping Redis to verify connectivity
+   * @returns PONG if connected
+   */
+  async ping(): Promise<string> {
+    try {
+      return await this.redis.ping();
+    } catch (error) {
+      this.logger.error('Failed to ping Redis', error);
+      throw error;
+    }
+  }
+
+  /**
    * Check if hash field exists
    * @param key Redis key
    * @param field Hash field
