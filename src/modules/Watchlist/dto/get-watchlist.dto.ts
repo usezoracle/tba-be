@@ -8,8 +8,7 @@ export class GetWatchlistDto {
     example: '0x1234567890123456789012345678901234567890',
     type: String,
   })
-  @IsString()
-  @IsEthereumAddress()
+  @IsString({ message: 'Wallet address must be a string' })
   walletAddress: string;
 
   @ApiProperty({
@@ -21,8 +20,8 @@ export class GetWatchlistDto {
   })
   @IsOptional()
   @Type(() => Number)
-  @IsInt()
-  @Min(1)
+  @IsInt({ message: 'Page must be an integer' })
+  @Min(1, { message: 'Page must be at least 1' })
   page?: number = 1;
 
   @ApiProperty({
@@ -35,9 +34,9 @@ export class GetWatchlistDto {
   })
   @IsOptional()
   @Type(() => Number)
-  @IsInt()
-  @Min(1)
-  @Max(100)
+  @IsInt({ message: 'Limit must be an integer' })
+  @Min(1, { message: 'Limit must be at least 1' })
+  @Max(100, { message: 'Limit cannot exceed 100' })
   limit?: number = 20;
 }
 

@@ -9,7 +9,10 @@ export const config = {
     url: process.env.UPSTASH_REDIS_URL,
   },
   database: {
-    url: process.env.DATABASE_URL,
+    url: process.env.DATABASE_URL, // Pooled connection (PgBouncer)
+    directUrl: process.env.DIRECT_URL, // Direct connection for migrations/schema operations
+    poolSize: parseInt(process.env.DATABASE_POOL_SIZE || '10', 10),
+    connectionTimeout: parseInt(process.env.DATABASE_CONNECTION_TIMEOUT || '30000', 10),
   },
   codex: {
     apiKey: process.env.CODEX_API_KEY,
