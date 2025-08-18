@@ -13,13 +13,14 @@ import {
   NotFoundException,
   DefaultValuePipe,
 } from '@nestjs/common';
-import { ApiOperation, ApiResponse, ApiTags, ApiQuery, ApiParam, ApiBody } from '@nestjs/swagger';
+import { ApiOperation, ApiTags, ApiQuery, ApiParam, ApiBody } from '@nestjs/swagger';
 import { COMMENTS_STREAM_DOC } from './docs/comments-stream.doc';
 import { Response } from 'express';
 import { CommentsService } from './services/comments.service';
 import { CreateCommentDto } from './dto';
 import { PinoLogger } from 'nestjs-pino';
 import { RedisService } from '../infrastructure/redis/redis.service';
+import { ApiMessage, ApiStandardResponses } from '../../common/decorators';
 
 @ApiTags('comments')
 @Controller('comments')
@@ -36,29 +37,8 @@ export class CommentsController {
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Create a new comment' })
   @ApiBody({ type: CreateCommentDto })
-  @ApiResponse({ 
-    status: 201, 
-    description: 'Comment created successfully',
-    schema: {
-      example: {
-        success: true,
-        data: {
-          id: 'comment_1234567890_abc123',
-          content: 'This token is promising!',
-          tokenAddress: '0xabc123...',
-          userId: 'user-uuid',
-          user: {
-            id: 'user-uuid',
-            walletAddress: '0xuserwallet...'
-          },
-          createdAt: '2024-01-15T10:30:00.000Z',
-          status: 'processing'
-        }
-      }
-    }
-  })
-  @ApiResponse({ status: 400, description: 'Invalid wallet address or missing required fields' })
-  @ApiResponse({ status: 404, description: 'User not found' })
+  @ApiMessage('Comment created successfully')
+  @ApiStandardResponses(true)
   async create(@Body() dto: CreateCommentDto) {
     this.logger.info('Received comment creation request');
     return this.comments.create(dto);
@@ -68,29 +48,8 @@ export class CommentsController {
   @ApiOperation({ summary: 'Get latest comments for a token' })
   @ApiParam({ name: 'tokenAddress', description: 'Token address to get comments for' })
   @ApiQuery({ name: 'limit', required: false, description: 'Number of comments to return (default: 50, max: 100)' })
-  @ApiResponse({ 
-    status: 200, 
-    description: 'Comments retrieved successfully',
-    schema: {
-      example: {
-        success: true,
-        data: [
-          {
-            id: 'comment-uuid',
-            content: 'This token is promising!',
-            tokenAddress: '0xabc123...',
-            userId: 'user-uuid',
-            user: {
-              id: 'user-uuid',
-              walletAddress: '0xuserwallet...'
-            },
-            createdAt: '2024-01-15T10:30:00.000Z'
-          }
-        ],
-        total: 1
-      }
-    }
-  })
+  @ApiMessage('Comments retrieved successfully')
+  @ApiStandardResponses()
   async getComments(
     @Param('tokenAddress') tokenAddress: string,
     @Query('limit', new DefaultValuePipe(50), ParseIntPipe) limit: number,
@@ -106,7 +65,6 @@ export class CommentsController {
   })
   @ApiParam({ name: 'tokenAddress', description: 'Token address to stream comments for' })
   @ApiQuery({ name: 'initial', required: false, description: 'Number of initial comments to send (default: 50, max: 100)' })
-  @ApiResponse({ status: 200, description: 'SSE stream of comments' })
   async stream(
     @Param('tokenAddress') tokenAddress: string,
     @Res() res: Response,

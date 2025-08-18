@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { PinoLogger } from 'nestjs-pino';
 import { RedisService } from '../../infrastructure/redis/redis.service';
 import { EventBusService } from '../../infrastructure/events/bus/event-bus.service';
@@ -26,12 +26,12 @@ export class EmojiService {
   async react(dto: ReactEmojiDto) {
     // Validate emoji type
     if (!['like', 'love', 'laugh', 'wow', 'sad'].includes(dto.emoji)) {
-      throw new Error('Invalid emoji type');
+      throw new BadRequestException('Invalid emoji type');
     }
 
     // Validate increment
     if (![1, 2, 3].includes(dto.increment)) {
-      throw new Error('Invalid increment value');
+      throw new BadRequestException('Invalid increment value');
     }
 
     // Create and publish event

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException, InternalServerErrorException } from '@nestjs/common';
 import { PinoLogger } from 'nestjs-pino';
 import { PrismaService } from '../../infrastructure/database';
 import { RedisService } from '../../infrastructure/redis/redis.service';
@@ -32,7 +32,7 @@ export class CommentsService {
   async create(params: CreateCommentParams): Promise<CreateCommentResult> {
     // Basic wallet format validation (0x + 40 hex)
     if (!/^0x[a-fA-F0-9]{40}$/.test(params.walletAddress)) {
-      throw new Error('Invalid wallet address format');
+      throw new BadRequestException('Invalid wallet address format');
     }
 
     // Find or create user by wallet
@@ -56,7 +56,7 @@ export class CommentsService {
       }
     } catch (dbError) {
       this.logger.error('Database connection failed', dbError);
-      throw new Error('Database connection failed. Please try again later.');
+      throw new InternalServerErrorException('Database connection failed. Please try again later.');
     }
 
     // Publish event for async processing (non-blocking)

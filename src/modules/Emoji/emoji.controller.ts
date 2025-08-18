@@ -11,13 +11,14 @@ import {
   ParseIntPipe,
   DefaultValuePipe,
 } from '@nestjs/common';
-import { ApiOperation, ApiResponse, ApiTags, ApiParam, ApiQuery } from '@nestjs/swagger';
+import { ApiOperation, ApiTags, ApiParam, ApiQuery } from '@nestjs/swagger';
 import { EMOJI_STREAM_DOC } from './docs/example.doc';
 import { Response } from 'express';
 import { EmojiService } from './services/emoji.service';
 import { ReactEmojiDto } from './dto';
 import { PinoLogger } from 'nestjs-pino';
 import { RedisService } from '../infrastructure/redis/redis.service';
+import { ApiMessage, ApiStandardResponses } from '../../common/decorators';
 
 @ApiTags('emoji')
 @Controller('emoji')
@@ -33,23 +34,8 @@ export class EmojiController {
   @Post('react')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'React with an emoji' })
-  @ApiResponse({ 
-    status: 201, 
-    description: 'Emoji reaction processed',
-    schema: {
-      example: {
-        success: true,
-        data: {
-          id: 'emoji_1234567890_abc123',
-          tokenAddress: '0xabc123...',
-          emoji: 'like',
-          increment: 1,
-          status: 'processing'
-        }
-      }
-    }
-  })
-  @ApiResponse({ status: 400, description: 'Invalid emoji type or increment value' })
+  @ApiMessage('Emoji reaction processed')
+  @ApiStandardResponses(true)
   async react(@Body() dto: ReactEmojiDto) {
     return this.emoji.react(dto);
   }
@@ -57,22 +43,8 @@ export class EmojiController {
   @Get(':tokenAddress')
   @ApiOperation({ summary: 'Get emoji reaction counts for a token' })
   @ApiParam({ name: 'tokenAddress', description: 'Token address to get emoji counts for' })
-  @ApiResponse({
-    status: 200,
-    description: 'Emoji counts retrieved successfully',
-    schema: {
-      example: {
-        success: true,
-        data: {
-          like: '5',
-          love: '3',
-          laugh: '1',
-          wow: '2',
-          sad: '0'
-        }
-      }
-    }
-  })
+  @ApiMessage('Emoji counts retrieved successfully')
+  @ApiStandardResponses()
   async getCounts(@Param('tokenAddress') tokenAddress: string) {
     return this.emoji.getCounts(tokenAddress);
   }
@@ -83,7 +55,6 @@ export class EmojiController {
     description: EMOJI_STREAM_DOC,
   })
   @ApiParam({ name: 'tokenAddress', description: 'Token address to stream emoji reactions for' })
-  @ApiResponse({ status: 200, description: 'SSE stream of emoji reactions' })
   async stream(
     @Param('tokenAddress') tokenAddress: string,
     @Res() res: Response,

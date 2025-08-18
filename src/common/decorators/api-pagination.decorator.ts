@@ -7,31 +7,15 @@ export function ApiPagination() {
       name: 'page',
       required: false,
       type: Number,
-      description: 'Page number',
+      description: 'Page number (default: 1)',
+      example: 1,
     }),
     ApiQuery({
-      name: 'perPage',
+      name: 'limit',
       required: false,
       type: Number,
-      description: 'Number of items per page',
-    }),
-    ApiQuery({
-      name: 'search',
-      required: false,
-      type: String,
-      description: 'Search query',
-    }),
-    ApiQuery({
-      name: 'sortBy',
-      required: false,
-      type: String,
-      description: 'Sort by field',
-    }),
-    ApiQuery({
-      name: 'sortOrder',
-      required: false,
-      type: String,
-      description: 'Sort order (asc or desc)',
+      description: 'Number of items per page (default: 20, max: 100)',
+      example: 20,
     }),
   );
 }

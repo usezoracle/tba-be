@@ -14,6 +14,8 @@ import { ApiTags, ApiOperation, ApiResponse, ApiQuery } from '@nestjs/swagger';
 import { Response } from 'express';
 import { CodexProvider } from './providers/codex.provider';
 import { NewTokensService, PaginatedTokensResponse } from './services/new-tokens.service';
+import { ApiMessage, ApiStandardResponses } from '../../common/decorators';
+import { ApiPagination } from '../../common/decorators/api-pagination.decorator';
 
 @ApiTags('new-tokens')
 @Controller('new-tokens')
@@ -29,24 +31,12 @@ export class NewTokensController {
 
   @Get('tokens')
   @ApiOperation({ summary: 'Get paginated tokens' })
+  @ApiMessage('Tokens retrieved successfully')
+  @ApiPagination()
+  @ApiStandardResponses()
   @ApiQuery({ name: 'page', required: false, description: 'Page number (default: 1). Ignored if offset is provided.' })
   @ApiQuery({ name: 'limit', required: false, description: 'Tokens per page (default: 30, max: 100)' })
   @ApiQuery({ name: 'offset', required: false, description: 'Absolute offset into newest-first list. Use this with SSE snapshot length for seamless paging.' })
-  @ApiResponse({
-    status: 200,
-    description: 'Returns paginated tokens',
-    schema: {
-      type: 'object',
-      properties: {
-        success: { type: 'boolean' },
-        data: { type: 'array', items: { type: 'object' } },
-        total: { type: 'number' },
-        page: { type: 'number' },
-        limit: { type: 'number' },
-        totalPages: { type: 'number' },
-      },
-    },
-  })
   async getTokens(
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
     @Query('limit', new DefaultValuePipe(50), ParseIntPipe) limit: number,

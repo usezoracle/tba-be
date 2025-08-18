@@ -43,12 +43,12 @@ export class HttpExceptionsFilter implements ExceptionFilter {
     );
 
     // Build the standardized response shape
-    const errorResponse: ErrorResponse = {
-      status: 'error',
-      error: {
-        message,
-        errorType,
-      },
+    const errorResponse = {
+      success: false,
+      message,
+      data: null,
+      statusCode: status,
+      timestamp: new Date().toISOString(),
     };
 
     response.status(status).json(errorResponse);
