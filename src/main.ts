@@ -1,5 +1,5 @@
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
+import { ValidationPipe, BadRequestException } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
 import { Logger } from 'nestjs-pino';
@@ -57,7 +57,7 @@ async function bootstrap() {
         const messages = errors.map((error) =>
           Object.values(error.constraints || {}).join(', '),
         );
-        return new Error(`Validation failed: ${messages.join('; ')}`);
+        return new BadRequestException(`Validation failed: ${messages.join('; ')}`);
       },
     }),
   );
@@ -97,14 +97,56 @@ async function bootstrap() {
     const prisma = app.get(PrismaService);
     const redis = app.get(RedisService);
 
-    // Database connectivity
+    // Database connectivity with retry logic
     if (prisma && typeof prisma.$connect === 'function') {
-      await prisma.$connect();
+      let dbConnected = false;
+      let retryCount = 0;
+      const maxRetries = 3;
+      
+      while (!dbConnected && retryCount < maxRetries) {
+        try {
+                    await prisma.$connect();
+          dbConnected = true;
+          logger.log(`✅ Database connected successfully (attempt ${retryCount + 1})`);
+        } catch (dbError) {
+          retryCount++;
+          logger.warn(`⚠️ Database connection attempt ${retryCount} failed, retrying...`, dbError);
+
+          if (retryCount >= maxRetries) {
+            logger.error('❌ Max database connection retries exceeded');
+            throw dbError;
+          }
+
+          // Wait before retrying (exponential backoff)
+          await new Promise(resolve => setTimeout(resolve, Math.pow(2, retryCount) * 1000));
+        }
+      }
     }
 
-    // Redis connectivity
+    // Redis connectivity with retry logic
     if (redis && typeof redis.ping === 'function') {
-      await redis.ping();
+      let redisConnected = false;
+      let retryCount = 0;
+      const maxRetries = 3;
+      
+      while (!redisConnected && retryCount < maxRetries) {
+        try {
+          await redis.ping();
+          redisConnected = true;
+          logger.log(`✅ Redis connected successfully (attempt ${retryCount + 1})`);
+        } catch (redisError) {
+          retryCount++;
+          logger.warn(`⚠️ Redis connection attempt ${retryCount} failed, retrying...`, redisError);
+          
+          if (retryCount >= maxRetries) {
+            logger.error('❌ Max Redis connection retries exceeded');
+            throw redisError;
+          }
+          
+          // Wait before retrying (exponential backoff)
+          await new Promise(resolve => setTimeout(resolve, Math.pow(2, retryCount) * 1000));
+        }
+      }
     }
   } catch (e) {
     const logger = app.get(Logger);

@@ -12,7 +12,6 @@ import {
 } from '@nestjs/common';
 import {
   ApiOperation,
-  ApiResponse,
   ApiTags,
   ApiParam,
   ApiQuery,
@@ -24,6 +23,13 @@ import {
   RemoveFromWatchlistDto,
   GetWatchlistDto,
 } from './dto';
+import {
+  AddToWatchlistParams,
+  RemoveFromWatchlistParams,
+  GetWatchlistParams,
+} from './interfaces/watchlist.interfaces';
+import { ApiMessage, ApiStandardResponses } from '../../common/decorators';
+import { ApiPagination } from '../../common/decorators/api-pagination.decorator';
 
 @ApiTags('watchlist')
 @Controller('watchlist')
@@ -38,19 +44,8 @@ export class WatchlistController {
   @Post('add')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Add tokens to user watchlist' })
-  @ApiResponse({
-    status: 201,
-    description: 'Tokens successfully added to watchlist',
-    schema: {
-      example: {
-        success: true,
-        message: 'Successfully added 2 tokens to watchlist',
-        addedCount: 2,
-      },
-    },
-  })
-  @ApiResponse({ status: 400, description: 'Invalid input data' })
-  @ApiResponse({ status: 500, description: 'Internal server error' })
+  @ApiMessage('Tokens successfully added to watchlist')
+  @ApiStandardResponses(true)
   async addToWatchlist(@Body() dto: AddToWatchlistDto) {
     this.logger.info('Adding tokens to watchlist', {
       walletAddress: dto.walletAddress,
@@ -62,20 +57,8 @@ export class WatchlistController {
   @Delete('remove')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Remove tokens from user watchlist' })
-  @ApiResponse({
-    status: 200,
-    description: 'Tokens successfully removed from watchlist',
-    schema: {
-      example: {
-        success: true,
-        message: 'Successfully removed 1 token from watchlist',
-        removedCount: 1,
-      },
-    },
-  })
-  @ApiResponse({ status: 400, description: 'Invalid input data' })
-  @ApiResponse({ status: 404, description: 'User not found' })
-  @ApiResponse({ status: 500, description: 'Internal server error' })
+  @ApiMessage('Tokens successfully removed from watchlist')
+  @ApiStandardResponses()
   async removeFromWatchlist(@Body() dto: RemoveFromWatchlistDto) {
     this.logger.info('Removing tokens from watchlist', {
       walletAddress: dto.walletAddress,
@@ -87,51 +70,14 @@ export class WatchlistController {
   @Get('get')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Get user watchlist with pagination' })
+  @ApiMessage('Watchlist retrieved successfully')
+  @ApiPagination()
+  @ApiStandardResponses()
   @ApiQuery({
     name: 'walletAddress',
     description: 'User wallet address',
     example: '0x1234567890123456789012345678901234567890',
   })
-  @ApiQuery({
-    name: 'page',
-    description: 'Page number',
-    required: false,
-    example: 1,
-  })
-  @ApiQuery({
-    name: 'limit',
-    description: 'Items per page',
-    required: false,
-    example: 20,
-  })
-  @ApiResponse({
-    status: 200,
-    description: 'Watchlist retrieved successfully',
-    schema: {
-      example: {
-        success: true,
-        data: [
-          {
-            id: '1',
-            userId: 'user123',
-            tokenAddress: '0xabc1234567890123456789012345678901234567',
-            addedAt: '2024-01-01T00:00:00.000Z',
-            user: {
-              id: 'user123',
-              walletAddress: '0x1234567890123456789012345678901234567890',
-            },
-          },
-        ],
-        total: 1,
-        page: 1,
-        limit: 20,
-        totalPages: 1,
-      },
-    },
-  })
-  @ApiResponse({ status: 400, description: 'Invalid input data' })
-  @ApiResponse({ status: 404, description: 'User not found' })
-  @ApiResponse({ status: 500, description: 'Internal server error' })
   async getWatchlist(@Query() dto: GetWatchlistDto) {
     this.logger.info('Getting watchlist', {
       walletAddress: dto.walletAddress,
@@ -154,19 +100,8 @@ export class WatchlistController {
     description: 'Token address to check',
     example: '0xabc1234567890123456789012345678901234567',
   })
-  @ApiResponse({
-    status: 200,
-    description: 'Check result',
-    schema: {
-      example: {
-        success: true,
-        isInWatchlist: true,
-        message: 'Token is in watchlist',
-      },
-    },
-  })
-  @ApiResponse({ status: 400, description: 'Invalid addresses' })
-  @ApiResponse({ status: 500, description: 'Internal server error' })
+  @ApiMessage('Check result retrieved successfully')
+  @ApiStandardResponses()
   async checkTokenInWatchlist(
     @Param('walletAddress') walletAddress: string,
     @Param('tokenAddress') tokenAddress: string,
@@ -186,19 +121,8 @@ export class WatchlistController {
     description: 'User wallet address',
     example: '0x1234567890123456789012345678901234567890',
   })
-  @ApiResponse({
-    status: 200,
-    description: 'Watchlist count retrieved successfully',
-    schema: {
-      example: {
-        success: true,
-        count: 5,
-        message: 'User has 5 tokens in watchlist',
-      },
-    },
-  })
-  @ApiResponse({ status: 400, description: 'Invalid wallet address' })
-  @ApiResponse({ status: 500, description: 'Internal server error' })
+  @ApiMessage('Watchlist count retrieved successfully')
+  @ApiStandardResponses()
   async getWatchlistCount(@Param('walletAddress') walletAddress: string) {
     this.logger.info('Getting watchlist count', { walletAddress });
     return this.watchlistService.getWatchlistCount(walletAddress);

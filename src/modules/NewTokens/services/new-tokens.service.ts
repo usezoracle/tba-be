@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PinoLogger } from 'nestjs-pino';
 import { RedisService } from '../../infrastructure/redis/redis.service';
 import { NewTokenCreatedEvent } from '../providers/interfaces';
+import { calculatePagination, validatePaginationParams } from '../../../shared/utils';
 
 export interface TokenData {
   name: string;
@@ -22,12 +23,13 @@ export interface TokenData {
 }
 
 export interface PaginatedTokensResponse {
-  success: boolean;
   data: TokenData[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
 }
 
 @Injectable()
@@ -53,8 +55,7 @@ export class NewTokensService {
   async getLatestTokens(page: number = 1, limit: number = 30, offset?: number): Promise<PaginatedTokensResponse> {
     try {
       // Validate parameters
-      const validatedPage = Math.max(1, page);
-      const validatedLimit = Math.min(100, Math.max(1, limit));
+      const { page: validatedPage, limit: validatedLimit } = validatePaginationParams(page, limit);
 
       // Calculate start and stop indices for Redis LRANGE
       const start = typeof offset === 'number' ? offset : (validatedPage - 1) * validatedLimit;
@@ -78,25 +79,15 @@ export class NewTokensService {
         })
         .filter(token => token !== null) as TokenData[];
 
-      const totalPages = Math.ceil(total / validatedLimit);
-
       return {
-        success: true,
         data: tokens,
-        total,
-        page: validatedPage,
-        limit: validatedLimit,
-        totalPages,
+        pagination: calculatePagination({ page: validatedPage, limit: validatedLimit }, total),
       };
     } catch (error) {
       this.logger.error('Failed to get latest tokens', error);
       return {
-        success: false,
         data: [],
-        total: 0,
-        page,
-        limit,
-        totalPages: 0,
+        pagination: calculatePagination({ page, limit }, 0),
       };
     }
   }

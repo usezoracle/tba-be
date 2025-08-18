@@ -7,8 +7,7 @@ export class AddToWatchlistDto {
     example: '0x1234567890123456789012345678901234567890',
     type: String,
   })
-  @IsString()
-  @IsEthereumAddress()
+  @IsString({ message: 'Wallet address must be a string' })
   walletAddress: string;
 
   @ApiProperty({
@@ -21,10 +20,10 @@ export class AddToWatchlistDto {
     minItems: 1,
     maxItems: 50,
   })
-  @IsArray()
+  @IsArray({ message: 'Token addresses must be an array' })
   @ArrayMinSize(1, { message: 'At least one token address is required' })
   @ArrayMaxSize(50, { message: 'Maximum 50 tokens can be added at once' })
-  @IsEthereumAddress({ each: true })
+  @IsEthereumAddress({ each: true, message: 'Each token address must be a valid Ethereum address' })
   tokenAddresses: string[];
 }
 
