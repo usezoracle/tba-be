@@ -19,7 +19,7 @@ export const config = {
     baseUrl: process.env.CODEX_BASE_URL ,
   },
   cors: {
-    origins: process.env.CORS_ORIGINS || 'https://usezoracle.xyz,https://zoracle.xyz,https://v2.usezoracle.xyz,https://v2.zoracle.xyz,http://localhost:3000',
+    origins: 'https://usezoracle.xyz,https://zoracle.xyz,https://v2.usezoracle.xyz,https://v2.zoracle.xyz,http://localhost:3000',
   },
   throttle: {
     ttl: parseInt(process.env.THROTTLE_TTL || '60000', 10),
