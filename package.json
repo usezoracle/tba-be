@@ -6,14 +6,17 @@
   "private": true,
   "license": "MIT",
   "scripts": {
-    "build": "nest build",
+    "build": "prisma generate && prisma db push && nest build",
     "format": "prettier --write \"src/**/*.ts\"",
     "start": "nest start",
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
     "lint": "eslint \"src/**/*.ts\" --fix",
-    "db:test": "node scripts/db-connection-test.js"
+    "db:test": "node scripts/db-connection-test.js",
+    "db:setup": "prisma generate && prisma db push",
+    "db:migrate": "prisma migrate dev",
+    "db:reset": "prisma db push --force-reset"
   },
   "dependencies": {
     "@aws-sdk/client-ses": "^3.859.0",
