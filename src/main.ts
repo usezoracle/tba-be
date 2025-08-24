@@ -9,12 +9,14 @@ import { PrismaService } from './modules/infrastructure/database/prisma/prisma.s
 import { RedisService } from './modules/infrastructure/redis/redis.service';
 
 async function bootstrap() {
-  // CORS configuration: use ONLY the origins provided via env (comma-separated)
-  const configuredOriginsEnv = process.env.CORS_ORIGINS;
-  const configuredOriginsList = (configuredOriginsEnv || '')
-    .split(',')
-    .map((o) => o.trim())
-    .filter(Boolean);
+  // CORS configuration: hardcoded origins for Zoracle domains
+  const configuredOriginsList = [
+    'https://usezoracle.xyz',
+    'https://zoracle.xyz',
+    'https://v2.usezoracle.xyz',
+    'https://v2.zoracle.xyz',
+    'http://localhost:3000'
+  ];
 
   const app = await NestFactory.create(AppModule, {
     bufferLogs: true,
