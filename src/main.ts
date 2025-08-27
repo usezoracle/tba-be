@@ -11,11 +11,21 @@ import { RedisService } from './modules/infrastructure/redis/redis.service';
 async function bootstrap() {
   // CORS configuration: hardcoded origins for Zoracle domains
   const configuredOriginsList = [
-    'https://usezoracle.xyz',
-    'https://zoracle.xyz',
+    'http://localhost:3000',
+    'http://localhost:3001',
+    'http://localhost:5173',
     'https://v2.usezoracle.xyz',
-    'https://v2.zoracle.xyz',
-    'http://localhost:3000'
+    'http://v2.usezoracle.xyz',
+    'https://usezoracle.xyz',
+    'http://usezoracle.xyz',
+    'https://zoracle.xyz',
+    'http://zoracle.xyz',
+    'https://www.v2.usezoracle.xyz',
+    'http://www.v2.usezoracle.xyz',
+    'https://www.usezoracle.xyz',
+    'http://www.usezoracle.xyz',
+    'https://www.zoracle.xyz',
+    'http://www.zoracle.xyz'
   ];
 
   const app = await NestFactory.create(AppModule, {
